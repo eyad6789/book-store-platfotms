@@ -326,7 +326,7 @@ router.post('/register', authenticateToken, requireRole('bookstore_owner'), vali
 // @route   GET /api/bookstores/my-bookstore
 // @desc    Get current user's bookstore
 // @access  Private (Bookstore owners only)
-router.get('/my-bookstore', authenticateToken, requireRole('bookstore_owner'), async (req, res) => {
+router.get('/my-bookstore', authenticateToken, async (req, res) => {
   try {
     const bookstore = await Bookstore.findOne({
       where: { owner_id: req.userId },

@@ -100,8 +100,24 @@ const Book = sequelize.define('Book', {
     defaultValue: false
   },
   language: {
-    type: DataTypes.ENUM('arabic', 'english', 'both'),
-    defaultValue: 'arabic'
+    type: DataTypes.ENUM('ar', 'en', 'ku', 'fr'),
+    defaultValue: 'ar'
+  },
+  category_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'categories',
+      key: 'id'
+    }
+  },
+  subcategory_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'categories',
+      key: 'id'
+    }
   },
   publication_year: {
     type: DataTypes.INTEGER,
@@ -152,6 +168,22 @@ const Book = sequelize.define('Book', {
   total_sales: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  },
+  view_count: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  tags: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: []
+  },
+  condition: {
+    type: DataTypes.ENUM('new', 'like_new', 'good', 'acceptable'),
+    defaultValue: 'new'
+  },
+  search_vector: {
+    type: DataTypes.TSVECTOR,
+    allowNull: true
   }
 }, {
   tableName: 'books',
@@ -170,6 +202,29 @@ const Book = sequelize.define('Book', {
     },
     {
       fields: ['is_featured']
+    },
+    {
+      fields: ['category_id']
+    },
+    {
+      fields: ['subcategory_id']
+    },
+    {
+      fields: ['language']
+    },
+    {
+      fields: ['condition']
+    },
+    {
+      fields: ['rating']
+    },
+    {
+      fields: ['view_count']
+    },
+    {
+      name: 'books_search_idx',
+      using: 'GIN',
+      fields: ['search_vector']
     }
   ]
 });

@@ -79,6 +79,10 @@ const Bookstore = sequelize.define('Bookstore', {
   total_reviews: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  },
+  governorate: {
+    type: DataTypes.STRING(50),
+    allowNull: true
   }
 }, {
   tableName: 'bookstores'

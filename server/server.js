@@ -12,6 +12,8 @@ const authRoutes = require('./routes/auth');
 const bookRoutes = require('./routes/books');
 const bookstoreRoutes = require('./routes/bookstores');
 const orderRoutes = require('./routes/orders');
+const wishlistRoutes = require('./routes/wishlist');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +24,16 @@ app.use(helmet());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  // In development, effectively disable rate limiting to avoid 429s from rapid client refreshes/test scripts
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || (process.env.NODE_ENV === 'production' ? 200 : 10000),
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false,  // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // Skip preflight requests and disable limiter entirely in non-production
+    if (req.method === 'OPTIONS') return true;
+    if (process.env.NODE_ENV !== 'production') return true;
+    return false;
+  },
   message: {
     error: 'Too many requests from this IP, please try again later.'
   }
@@ -47,6 +58,48 @@ app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/bookstores', bookstoreRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+// API root endpoint
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: 'مرحباً بكم في المتنبي - أكبر متجر إلكتروني للكتب في العراق',
+    message_en: 'Welcome to Al-Mutanabbi - Iraq\'s Largest Online Bookstore',
+    version: '2.0.0',
+    endpoints: {
+      health: 'GET /api/health',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        profile: 'GET /api/auth/profile'
+      },
+      books: {
+        list: 'GET /api/books',
+        search: 'GET /api/books/search',
+        categories: 'GET /api/books/categories',
+        featured: 'GET /api/books/featured',
+        details: 'GET /api/books/:id'
+      },
+      bookstores: {
+        list: 'GET /api/bookstores',
+        myBookstore: 'GET /api/bookstores/my-bookstore',
+        details: 'GET /api/bookstores/:id'
+      },
+      wishlist: {
+        list: 'GET /api/wishlist',
+        add: 'POST /api/wishlist/:bookId',
+        remove: 'DELETE /api/wishlist/:bookId',
+        check: 'GET /api/wishlist/check/:bookId'
+      },
+      analytics: {
+        bookstore: 'GET /api/analytics/bookstore',
+        searchTrends: 'GET /api/analytics/search-trends'
+      }
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -54,6 +107,26 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'Al-Mutanabbi server is running',
     timestamp: new Date().toISOString()
+  });
+});
+
+// API route not found handler
+app.use('/api/*', (req, res) => {
+  console.log(`API route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    error: 'Not Found',
+    message: `The requested resource ${req.originalUrl} was not found`,
+    availableRoutes: [
+      'GET /api/health',
+      'POST /api/auth/register',
+      'POST /api/auth/login',
+      'GET /api/books',
+      'GET /api/books/search',
+      'GET /api/books/categories',
+      'GET /api/bookstores',
+      'GET /api/wishlist',
+      'GET /api/analytics/bookstore/:id'
+    ]
   });
 });
 

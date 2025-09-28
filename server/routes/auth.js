@@ -136,6 +136,36 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// @route   GET /api/auth/profile
+// @desc    Get current user profile (alias for /me)
+// @access  Private
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password_hash'] }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User profile not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      error: 'Profile fetch failed',
+      message: 'Something went wrong while fetching profile'
+    });
+  }
+});
+
 // @route   PUT /api/auth/profile
 // @desc    Update user profile
 // @access  Private

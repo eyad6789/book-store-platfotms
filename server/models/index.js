@@ -2,6 +2,10 @@ const User = require('./User');
 const Bookstore = require('./Bookstore');
 const Book = require('./Book');
 const { Order, OrderItem } = require('./Order');
+const Category = require('./Category');
+const BookReview = require('./BookReview');
+const Wishlist = require('./Wishlist');
+const SearchQuery = require('./SearchQuery');
 
 // Define associations
 
@@ -16,6 +20,24 @@ User.hasMany(Order, {
   foreignKey: 'customer_id', 
   as: 'orders',
   onDelete: 'CASCADE'
+});
+
+User.hasMany(BookReview, { 
+  foreignKey: 'user_id', 
+  as: 'reviews',
+  onDelete: 'CASCADE'
+});
+
+User.hasMany(Wishlist, { 
+  foreignKey: 'user_id', 
+  as: 'wishlists',
+  onDelete: 'CASCADE'
+});
+
+User.hasMany(SearchQuery, { 
+  foreignKey: 'user_id', 
+  as: 'searchQueries',
+  onDelete: 'SET NULL'
 });
 
 // Bookstore associations
@@ -41,6 +63,34 @@ Book.hasMany(OrderItem, {
   as: 'orderItems'
 });
 
+Book.belongsTo(Category, { 
+  foreignKey: 'category_id', 
+  as: 'bookCategory'
+});
+
+Book.belongsTo(Category, { 
+  foreignKey: 'subcategory_id', 
+  as: 'bookSubcategory'
+});
+
+Book.hasMany(BookReview, { 
+  foreignKey: 'book_id', 
+  as: 'reviews',
+  onDelete: 'CASCADE'
+});
+
+Book.hasMany(Wishlist, { 
+  foreignKey: 'book_id', 
+  as: 'wishlists',
+  onDelete: 'CASCADE'
+});
+
+Book.hasMany(SearchQuery, { 
+  foreignKey: 'clicked_book_id', 
+  as: 'searchClicks',
+  onDelete: 'SET NULL'
+});
+
 // Order associations
 Order.belongsTo(User, { 
   foreignKey: 'customer_id', 
@@ -64,10 +114,68 @@ OrderItem.belongsTo(Book, {
   as: 'book'
 });
 
+// Category associations
+Category.hasMany(Category, { 
+  foreignKey: 'parent_id', 
+  as: 'subcategories'
+});
+
+Category.belongsTo(Category, { 
+  foreignKey: 'parent_id', 
+  as: 'parent'
+});
+
+Category.hasMany(Book, { 
+  foreignKey: 'category_id', 
+  as: 'books'
+});
+
+Category.hasMany(Book, { 
+  foreignKey: 'subcategory_id', 
+  as: 'subcategoryBooks'
+});
+
+// BookReview associations
+BookReview.belongsTo(User, { 
+  foreignKey: 'user_id', 
+  as: 'user'
+});
+
+BookReview.belongsTo(Book, { 
+  foreignKey: 'book_id', 
+  as: 'book'
+});
+
+// Wishlist associations
+Wishlist.belongsTo(User, { 
+  foreignKey: 'user_id', 
+  as: 'user'
+});
+
+Wishlist.belongsTo(Book, { 
+  foreignKey: 'book_id', 
+  as: 'book'
+});
+
+// SearchQuery associations
+SearchQuery.belongsTo(User, { 
+  foreignKey: 'user_id', 
+  as: 'user'
+});
+
+SearchQuery.belongsTo(Book, { 
+  foreignKey: 'clicked_book_id', 
+  as: 'clickedBook'
+});
+
 module.exports = {
   User,
   Bookstore,
   Book,
   Order,
-  OrderItem
+  OrderItem,
+  Category,
+  BookReview,
+  Wishlist,
+  SearchQuery
 };

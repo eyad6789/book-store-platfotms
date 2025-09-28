@@ -1,11 +1,39 @@
 import { Link } from 'react-router-dom'
-import { Star, ShoppingCart, Eye } from 'lucide-react'
+import { Star, ShoppingCart, Eye, Heart, MapPin } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useCart } from '../../contexts/CartContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { formatPrice, getImageUrl, getBookStatusBadge } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const BookCard = ({ book, showBookstore = true }) => {
   const { addToCart, isInCart, getItemQuantity } = useCart()
+  const { user, token } = useAuth()
+  const [isWishlisted, setIsWishlisted] = useState(false)
+  const [wishlistLoading, setWishlistLoading] = useState(false)
+
+  // Check if book is in wishlist on mount
+  useEffect(() => {
+    if (user && token) {
+      checkWishlistStatus()
+    }
+  }, [user, token, book.id])
+
+  const checkWishlistStatus = async () => {
+    try {
+      const response = await fetch(`/api/wishlist/check/${book.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setIsWishlisted(data.wishlisted)
+      }
+    } catch (error) {
+      console.error('Error checking wishlist status:', error)
+    }
+  }
 
   const handleAddToCart = (e) => {
     e.preventDefault()
@@ -19,6 +47,40 @@ const BookCard = ({ book, showBookstore = true }) => {
     const success = addToCart(book, 1)
     if (success) {
       // Toast is handled in the cart context
+    }
+  }
+
+  const toggleWishlist = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!user || !token) {
+      toast.error('يجب تسجيل الدخول أولاً')
+      return
+    }
+
+    setWishlistLoading(true)
+    try {
+      const method = isWishlisted ? 'DELETE' : 'POST'
+      const response = await fetch(`/api/wishlist/${book.id}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      const data = await response.json()
+      if (data.success) {
+        setIsWishlisted(!isWishlisted)
+        toast.success(data.message)
+      } else {
+        toast.error(data.error || 'حدث خطأ')
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error)
+      toast.error('حدث خطأ في إدارة قائمة الأمنيات')
+    } finally {
+      setWishlistLoading(false)
     }
   }
 
@@ -40,14 +102,30 @@ const BookCard = ({ book, showBookstore = true }) => {
             }}
           />
           
+          {/* Wishlist Button */}
+          <button
+            onClick={toggleWishlist}
+            disabled={wishlistLoading}
+            className={`absolute top-3 left-3 p-2 rounded-full transition-all duration-200 ${
+              isWishlisted 
+                ? 'bg-red-500 text-white hover:bg-red-600' 
+                : 'bg-white text-gray-400 hover:bg-red-500 hover:text-white'
+            } ${wishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          </button>
+
           {/* Status Badge */}
-          <div className={`absolute top-2 right-2 badge ${statusBadge.className} text-xs`}>
-            {statusBadge.text}
-          </div>
+          {book.condition !== 'new' && (
+            <div className="absolute top-3 right-3 bg-orange-500 text-white px-2 py-1 rounded-full text-xs">
+              {book.condition === 'like_new' ? 'كالجديد' : 
+               book.condition === 'good' ? 'جيد' : 'مقبول'}
+            </div>
+          )}
 
           {/* Featured Badge */}
           {book.is_featured && (
-            <div className="absolute top-2 left-2 bg-primary-gold text-primary-dark px-2 py-1 rounded text-xs font-medium">
+            <div className="absolute top-12 right-3 bg-primary-gold text-primary-dark px-2 py-1 rounded text-xs font-medium">
               مميز
             </div>
           )}
@@ -72,11 +150,18 @@ const BookCard = ({ book, showBookstore = true }) => {
             {book.author_arabic || book.author}
           </p>
 
-          {/* Bookstore */}
+          {/* Bookstore Info */}
           {showBookstore && book.bookstore && (
-            <p className="text-xs text-gray-500 mb-2">
-              {book.bookstore.name_arabic || book.bookstore.name}
-            </p>
+            <div className="flex items-center gap-1 mb-3 text-sm text-gray-600">
+              <MapPin className="h-3 w-3" />
+              <span>{book.bookstore.name_arabic || book.bookstore.name}</span>
+              {book.bookstore.governorate && (
+                <>
+                  <span>•</span>
+                  <span>{book.bookstore.governorate}</span>
+                </>
+              )}
+            </div>
           )}
 
           {/* Rating */}

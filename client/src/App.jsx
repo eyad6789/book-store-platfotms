@@ -28,8 +28,14 @@ import ManageBooksPage from './pages/bookstore/ManageBooksPage'
 import AddBookPage from './pages/bookstore/AddBookPage'
 import EditBookPage from './pages/bookstore/EditBookPage'
 
+// Library management pages
+import LibraryDashboardWrapper from './pages/library/LibraryDashboardWrapper'
+import BookForm from './pages/library/BookForm'
+import TestPage from './pages/TestPage'
+
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard'
+import EnhancedAdminDashboard from './pages/admin/EnhancedAdminDashboard'
 
 // Components
 import ProtectedRoute from './components/auth/ProtectedRoute'
@@ -109,8 +115,31 @@ function App() {
             </ProtectedRoute>
           } />
           
+          {/* Library management routes */}
+          <Route path="/test/:bookstoreId" element={<TestPage />} />
+          <Route path="/library/:bookstoreId/dashboard" element={
+            <ProtectedRoute requiredRole="bookstore_owner">
+              <LibraryDashboardWrapper />
+            </ProtectedRoute>
+          } />
+          <Route path="/library/:bookstoreId/books/add" element={
+            <ProtectedRoute requiredRole="bookstore_owner">
+              <BookForm />
+            </ProtectedRoute>
+          } />
+          <Route path="/library/:bookstoreId/books/:bookId/edit" element={
+            <ProtectedRoute requiredRole="bookstore_owner">
+              <BookForm />
+            </ProtectedRoute>
+          } />
+          
           {/* Admin routes */}
           <Route path="/admin" element={
+            <ProtectedRoute requiredRole="admin">
+              <EnhancedAdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/legacy" element={
             <ProtectedRoute requiredRole="admin">
               <AdminDashboard />
             </ProtectedRoute>

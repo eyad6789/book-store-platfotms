@@ -328,6 +328,14 @@ router.post('/register', authenticateToken, requireRole('bookstore_owner'), vali
 // @access  Private (Bookstore owners only)
 router.get('/my-bookstore', authenticateToken, async (req, res) => {
   try {
+    // Check if user is a bookstore owner
+    if (req.user.role !== 'bookstore_owner') {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Only bookstore owners can access this endpoint'
+      });
+    }
+
     const bookstore = await Bookstore.findOne({
       where: { owner_id: req.userId },
       include: [
@@ -347,12 +355,18 @@ router.get('/my-bookstore', authenticateToken, async (req, res) => {
     }
 
     // Get bookstore statistics
-    const bookCount = await Book.count({
-      where: { 
-        bookstore_id: bookstore.id,
-        is_active: true 
-      }
-    });
+    let bookCount = 0;
+    try {
+      bookCount = await Book.count({
+        where: { 
+          bookstore_id: bookstore.id,
+          is_active: true 
+        }
+      });
+    } catch (countError) {
+      console.error('Error counting books:', countError);
+      // Continue with bookCount = 0 if there's an error
+    }
 
     const bookstoreData = bookstore.toJSON();
     bookstoreData.statistics = {

@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3001,
+    strictPort: true, // Force use of port 3001, fail if not available
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

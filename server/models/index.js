@@ -6,6 +6,10 @@ const Category = require('./Category');
 const BookReview = require('./BookReview');
 const Wishlist = require('./Wishlist');
 const SearchQuery = require('./SearchQuery');
+const LibraryBook = require('./LibraryBook');
+const BookShare = require('./BookShare');
+const LibraryMetric = require('./LibraryMetric');
+const UserActivity = require('./UserActivity');
 
 // Define associations
 
@@ -168,6 +172,70 @@ SearchQuery.belongsTo(Book, {
   as: 'clickedBook'
 });
 
+// LibraryBook associations
+LibraryBook.belongsTo(Bookstore, {
+  foreignKey: 'bookstore_id',
+  as: 'bookstore'
+});
+
+LibraryBook.belongsTo(Category, {
+  foreignKey: 'category_id',
+  as: 'category'
+});
+
+LibraryBook.belongsTo(User, {
+  foreignKey: 'approved_by',
+  as: 'approver'
+});
+
+LibraryBook.hasMany(BookShare, {
+  foreignKey: 'library_book_id',
+  as: 'shares',
+  onDelete: 'CASCADE'
+});
+
+// Bookstore associations for LibraryBooks
+Bookstore.hasMany(LibraryBook, {
+  foreignKey: 'bookstore_id',
+  as: 'libraryBooks',
+  onDelete: 'CASCADE'
+});
+
+Bookstore.hasMany(LibraryMetric, {
+  foreignKey: 'bookstore_id',
+  as: 'metrics',
+  onDelete: 'CASCADE'
+});
+
+// BookShare associations
+BookShare.belongsTo(LibraryBook, {
+  foreignKey: 'library_book_id',
+  as: 'book'
+});
+
+BookShare.belongsTo(User, {
+  foreignKey: 'shared_by',
+  as: 'sharedBy'
+});
+
+// LibraryMetric associations
+LibraryMetric.belongsTo(Bookstore, {
+  foreignKey: 'bookstore_id',
+  as: 'bookstore'
+});
+
+// UserActivity associations
+UserActivity.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
+
+User.hasMany(UserActivity, {
+  foreignKey: 'user_id',
+  as: 'activities',
+  onDelete: 'CASCADE'
+});
+
 module.exports = {
   User,
   Bookstore,
@@ -177,5 +245,9 @@ module.exports = {
   Category,
   BookReview,
   Wishlist,
-  SearchQuery
+  SearchQuery,
+  LibraryBook,
+  BookShare,
+  LibraryMetric,
+  UserActivity
 };

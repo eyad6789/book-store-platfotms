@@ -21,7 +21,8 @@ const BookstoreRegister = () => {
     setIsLoading(true)
     
     try {
-      const response = await bookstoresAPI.registerBookstore(data)
+      const { terms, ...bookstoreData } = data
+      const response = await bookstoresAPI.registerBookstore(bookstoreData)
       
       if (response.data) {
         toast.success('تم تسجيل مكتبتك بنجاح! في انتظار موافقة الإدارة.')

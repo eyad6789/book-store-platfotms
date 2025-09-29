@@ -14,6 +14,9 @@ const bookstoreRoutes = require('./routes/bookstores');
 const orderRoutes = require('./routes/orders');
 const wishlistRoutes = require('./routes/wishlist');
 const analyticsRoutes = require('./routes/analytics');
+const libraryBooksRoutes = require('./routes/libraryBooks');
+const libraryDashboardRoutes = require('./routes/libraryDashboard');
+const adminAnalyticsRoutes = require('./routes/adminAnalytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +49,12 @@ app.use(cors({
   credentials: true
 }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -60,6 +69,9 @@ app.use('/api/bookstores', bookstoreRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/library', libraryBooksRoutes);
+app.use('/api/library', libraryDashboardRoutes);
+app.use('/api/admin', adminAnalyticsRoutes);
 
 // API root endpoint
 app.get('/api', (req, res) => {
@@ -86,6 +98,17 @@ app.get('/api', (req, res) => {
         list: 'GET /api/bookstores',
         myBookstore: 'GET /api/bookstores/my-bookstore',
         details: 'GET /api/bookstores/:id'
+      },
+      library: {
+        dashboard: 'GET /api/library/:bookstoreId/dashboard',
+        books: 'GET /api/library/:bookstoreId/books',
+        addBook: 'POST /api/library/:bookstoreId/books',
+        shareBook: 'POST /api/library/books/:bookId/share',
+        sharedBooks: 'GET /api/library/:bookstoreId/shared-books'
+      },
+      admin: {
+        dashboard: 'GET /api/admin/dashboard',
+        exportReports: 'GET /api/admin/reports/export'
       },
       wishlist: {
         list: 'GET /api/wishlist',

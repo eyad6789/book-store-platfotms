@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Store, BookOpen, Plus, BarChart3, Users, DollarSign } from 'lucide-react'
 import { bookstoresAPI } from '../../utils/api'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
 const BookstoreDashboard = () => {
+  const navigate = useNavigate()
   const [bookstore, setBookstore] = useState(null)
   const [stats, setStats] = useState({
     totalBooks: 0,
@@ -30,6 +31,27 @@ const BookstoreDashboard = () => {
         })
       } catch (error) {
         console.error('Error fetching bookstore data:', error)
+        
+        // Handle specific error cases
+        if (error.response?.status === 403) {
+          // User is not a bookstore owner, redirect to registration
+          navigate('/bookstore/register')
+          return
+        }
+        
+        if (error.response?.status === 404) {
+          // User is a bookstore owner but hasn't registered a bookstore yet
+          setBookstore(null)
+        }
+        
+        if (error.response?.status === 401) {
+          // Token expired or invalid, redirect to login
+          navigate('/login')
+          return
+        }
+        
+        // For any other errors, show the "no bookstore" state
+        setBookstore(null)
       } finally {
         setLoading(false)
       }
@@ -37,6 +59,13 @@ const BookstoreDashboard = () => {
 
     fetchData()
   }, [])
+
+  // If bookstore exists, redirect to the new library dashboard
+  useEffect(() => {
+    if (bookstore && bookstore.id) {
+      navigate(`/library/${bookstore.id}/dashboard`)
+    }
+  }, [bookstore, navigate])
 
   if (loading) {
     return (

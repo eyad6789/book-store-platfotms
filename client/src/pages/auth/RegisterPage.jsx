@@ -39,7 +39,7 @@ const RegisterPage = () => {
     setIsLoading(true)
     
     try {
-      const { confirmPassword, ...userData } = data
+      const { confirmPassword, terms, ...userData } = data
       const result = await registerUser(userData)
       
       if (result.success) {

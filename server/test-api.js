@@ -1,7 +1,6 @@
 // Test API endpoints to find the issue
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./config/database');
 
 const app = express();
 app.use(cors());

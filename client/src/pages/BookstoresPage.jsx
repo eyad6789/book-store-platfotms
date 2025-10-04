@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Store, Star, Search, MapPin, Phone, Mail } from 'lucide-react'
+import { Store, Star, Search, MapPin } from 'lucide-react'
 import { bookstoresAPI } from '../utils/api'
 import { getImageUrl } from '../utils/helpers'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -121,20 +121,6 @@ const BookstoresPage = () => {
                       <div className="flex items-center space-x-2 rtl:space-x-reverse text-sm text-gray-600">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">{bookstore.address_arabic || bookstore.address}</span>
-                      </div>
-                    )}
-                    
-                    {bookstore.phone && (
-                      <div className="flex items-center space-x-2 rtl:space-x-reverse text-sm text-gray-600">
-                        <Phone className="w-4 h-4 flex-shrink-0" />
-                        <span className="english-text" dir="ltr">{bookstore.phone}</span>
-                      </div>
-                    )}
-                    
-                    {bookstore.email && (
-                      <div className="flex items-center space-x-2 rtl:space-x-reverse text-sm text-gray-600">
-                        <Mail className="w-4 h-4 flex-shrink-0" />
-                        <span className="english-text" dir="ltr">{bookstore.email}</span>
                       </div>
                     )}
                   </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Store, Star, MapPin, Phone, Mail, BookOpen } from 'lucide-react'
+import { Store, Star, MapPin, BookOpen } from 'lucide-react'
 import { bookstoresAPI } from '../utils/api'
 import { getImageUrl } from '../utils/helpers'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -102,33 +102,13 @@ const BookstoreDetailPage = () => {
               </p>
 
               {/* Contact Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {bookstore.address && (
                   <div className="flex items-start space-x-3 rtl:space-x-reverse">
                     <MapPin className="w-5 h-5 text-primary-brown flex-shrink-0 mt-1" />
                     <div>
                       <span className="text-sm text-gray-600">العنوان:</span>
                       <p className="font-medium">{bookstore.address_arabic || bookstore.address}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {bookstore.phone && (
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <Phone className="w-5 h-5 text-primary-brown flex-shrink-0" />
-                    <div>
-                      <span className="text-sm text-gray-600">الهاتف:</span>
-                      <p className="font-medium english-text" dir="ltr">{bookstore.phone}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {bookstore.email && (
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <Mail className="w-5 h-5 text-primary-brown flex-shrink-0" />
-                    <div>
-                      <span className="text-sm text-gray-600">البريد الإلكتروني:</span>
-                      <p className="font-medium english-text" dir="ltr">{bookstore.email}</p>
                     </div>
                   </div>
                 )}

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import { runAuthDiagnostics } from '../../utils/authCheck';
 
 function LibraryDashboard({ bookstoreId: propBookstoreId }) {
   const { bookstoreId: paramBookstoreId } = useParams();
@@ -13,31 +14,64 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
   const [stats, setStats] = useState(null);
   const [timeRange, setTimeRange] = useState('30');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   useEffect(() => {
-    fetchDashboardData();
+    // Run authentication diagnostics first
+    runAuthDiagnostics().then(isAuthenticated => {
+      if (isAuthenticated) {
+        fetchDashboardData();
+      } else {
+        setError('لم يتم العثور على رمز مصادقة صالح. يرجى تسجيل الدخول مرة أخرى.');
+        setLoading(false);
+      }
+    });
   }, [timeRange, bookstoreId]);
   
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      console.log('Fetching dashboard data for bookstore:', bookstoreId);
+      
+      // Check if token exists
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('لم يتم العثور على رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.');
+      }
+      
+      console.log('Token found, making request...');
+      
       const response = await fetch(
         `/api/library/${bookstoreId}/dashboard?days=${timeRange}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle authentication errors
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return;
+        }
+        
+        throw new Error(errorData.error || errorData.message || 'فشل في تحميل البيانات');
       }
       
       const result = await response.json();
+      console.log('Dashboard data loaded successfully:', result);
       setStats(result.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError(error.message || 'حدث خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
     }
@@ -47,6 +81,34 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner size="large" text="جاري تحميل لوحة التحكم..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64" dir="rtl">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">خطأ في تحميل البيانات</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="space-x-2 space-x-reverse">
+            <button
+              onClick={fetchDashboardData}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              إعادة المحاولة
+            </button>
+            {error.includes('المصادقة') && (
+              <button
+                onClick={() => window.location.href = '/login'}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                تسجيل الدخول
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

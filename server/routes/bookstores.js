@@ -98,13 +98,22 @@ router.get('/', async (req, res) => {
       distinct: true
     });
 
-    // Add book count to each bookstore
-    const bookstoresWithCount = bookstores.map(bookstore => {
+    // Add accurate book count to each bookstore
+    const bookstoresWithCount = await Promise.all(bookstores.map(async (bookstore) => {
       const bookstoreData = bookstore.toJSON();
-      bookstoreData.book_count = bookstore.books ? bookstore.books.length : 0;
+      
+      // Get actual count of all books
+      const bookCount = await Book.count({
+        where: { 
+          bookstore_id: bookstore.id,
+          is_active: true 
+        }
+      });
+      
+      bookstoreData.book_count = bookCount;
       delete bookstoreData.books;
       return bookstoreData;
-    });
+    }));
 
     const totalPages = Math.ceil(count / limit);
 
@@ -156,7 +165,7 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Get bookstore's books
+    // Get bookstore's books (limited for display)
     const books = await Book.findAll({
       where: {
         bookstore_id: bookstore.id,
@@ -166,9 +175,29 @@ router.get('/:id', async (req, res) => {
       limit: 12
     });
 
+    // Get actual total count of all books
+    const totalBooksCount = await Book.count({
+      where: {
+        bookstore_id: bookstore.id,
+        is_active: true
+      }
+    });
+
+    // Get total reviews count for this bookstore
+    const BookReview = require('../models').BookReview;
+    const totalReviewsCount = await BookReview.count({
+      include: [{
+        model: Book,
+        as: 'book',
+        where: { bookstore_id: bookstore.id },
+        attributes: []
+      }]
+    });
+
     const bookstoreData = bookstore.toJSON();
     bookstoreData.books = books;
-    bookstoreData.book_count = books.length;
+    bookstoreData.book_count = totalBooksCount;
+    bookstoreData.total_reviews = totalReviewsCount;
 
     res.json({ bookstore: bookstoreData });
 
@@ -323,6 +352,24 @@ router.post('/register', authenticateToken, requireRole('bookstore_owner'), vali
   }
 });
 
+// Test route - simple bookstore query without auth
+router.get('/test-simple', async (req, res) => {
+  try {
+    console.log('TEST SIMPLE ROUTE HIT!');
+    const bookstore = await Bookstore.findOne({
+      where: { owner_id: 2 }
+    });
+    console.log('Bookstore found:', bookstore ? bookstore.name : 'Not found');
+    res.json({ 
+      success: true, 
+      bookstore: bookstore ? { id: bookstore.id, name: bookstore.name } : null 
+    });
+  } catch (error) {
+    console.error('Test simple error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // @route   GET /api/bookstores/my-bookstore
 // @desc    Get current user's bookstore
 // @access  Private (Bookstore owners only)
@@ -336,16 +383,18 @@ router.get('/my-bookstore', authenticateToken, async (req, res) => {
       });
     }
 
+    // Try simple query first without includes
     const bookstore = await Bookstore.findOne({
-      where: { owner_id: req.userId },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'full_name', 'email']
-        }
-      ]
+      where: { owner_id: req.userId }
     });
+    
+    // If bookstore found, get owner info separately
+    let ownerInfo = null;
+    if (bookstore) {
+      ownerInfo = await User.findByPk(bookstore.owner_id, {
+        attributes: ['id', 'full_name', 'email']
+      });
+    }
 
     if (!bookstore) {
       return res.status(404).json({
@@ -369,6 +418,7 @@ router.get('/my-bookstore', authenticateToken, async (req, res) => {
     }
 
     const bookstoreData = bookstore.toJSON();
+    bookstoreData.owner = ownerInfo;
     bookstoreData.statistics = {
       total_books: bookCount
     };

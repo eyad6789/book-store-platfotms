@@ -17,6 +17,8 @@ const analyticsRoutes = require('./routes/analytics');
 const libraryBooksRoutes = require('./routes/libraryBooks');
 const libraryDashboardRoutes = require('./routes/libraryDashboard');
 const adminAnalyticsRoutes = require('./routes/adminAnalytics');
+const adminRoutes = require('./routes/admin');
+const setupRoutes = require('./routes/setup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +54,7 @@ app.use(cors({
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers.authorization ? 'Auth header present' : 'No auth header');
   next();
 });
 
@@ -72,6 +75,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/library', libraryBooksRoutes);
 app.use('/api/library', libraryDashboardRoutes);
 app.use('/api/admin', adminAnalyticsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/setup', setupRoutes);
 
 // API root endpoint
 app.get('/api', (req, res) => {

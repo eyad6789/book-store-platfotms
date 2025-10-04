@@ -65,6 +65,9 @@ export const authAPI = {
   updateProfile: (userData) => api.put('/auth/profile', userData),
   changePassword: (passwordData) => api.post('/auth/change-password', passwordData),
   logout: () => api.post('/auth/logout'),
+  uploadAvatar: (formData) => api.post('/auth/upload-avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 }
 
 // Books API

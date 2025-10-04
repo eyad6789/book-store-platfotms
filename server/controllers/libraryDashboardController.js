@@ -20,27 +20,46 @@ const getLibraryDashboard = async (req, res) => {
     const { days = 30 } = req.query;
     const userId = req.user.id;
     
+    console.log('LibraryDashboard request:', { bookstoreId, userId, days });
+    
     // Verify ownership
     const bookstore = await Bookstore.findOne({
       where: { id: bookstoreId, owner_id: userId }
     });
     
     if (!bookstore) {
+      console.log('Bookstore not found or access denied:', { bookstoreId, userId });
       return res.status(403).json({ 
-        error: 'غير مصرح بالوصول'
+        error: 'غير مصرح بالوصول',
+        message: 'لا يمكنك الوصول إلى هذه المكتبة'
       });
     }
+    
+    console.log('Bookstore found:', bookstore.name);
     
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
     
-    // Get current period metrics
-    const currentMetrics = await getMetricsForPeriod(bookstoreId, startDate, new Date());
+    // Get current period metrics with error handling
+    let currentMetrics, previousMetrics;
+    try {
+      currentMetrics = await getMetricsForPeriod(bookstoreId, startDate, new Date());
+      console.log('Current metrics loaded successfully');
+    } catch (error) {
+      console.error('Error loading current metrics:', error);
+      currentMetrics = getDefaultMetrics();
+    }
     
     // Get previous period metrics for comparison
-    const previousStartDate = new Date(startDate);
-    previousStartDate.setDate(previousStartDate.getDate() - parseInt(days));
-    const previousMetrics = await getMetricsForPeriod(bookstoreId, previousStartDate, startDate);
+    try {
+      const previousStartDate = new Date(startDate);
+      previousStartDate.setDate(previousStartDate.getDate() - parseInt(days));
+      previousMetrics = await getMetricsForPeriod(bookstoreId, previousStartDate, startDate);
+      console.log('Previous metrics loaded successfully');
+    } catch (error) {
+      console.error('Error loading previous metrics:', error);
+      previousMetrics = getDefaultMetrics();
+    }
     
     // Calculate percentage changes
     const calculateChange = (current, previous) => {
@@ -48,73 +67,101 @@ const getLibraryDashboard = async (req, res) => {
       return ((current - previous) / previous * 100).toFixed(1);
     };
     
-    // Get top performing books
-    const topBooks = await LibraryBook.findAll({
-      where: { 
-        bookstore_id: bookstoreId,
-        status: 'approved'
-      },
-      order: [['sales_count', 'DESC']],
-      limit: 5,
-      attributes: [
-        'id', 'title_ar', 'author_ar', 'price', 
-        'sales_count', 'views_count', 'cover_image_url'
-      ]
-    });
-    
-    // Get recent orders
-    const recentOrders = await Order.findAll({
-      include: [
-        {
-          model: OrderItem,
-          as: 'items',
-          include: [
-            {
-              model: LibraryBook,
-              as: 'libraryBook',
-              where: { bookstore_id: bookstoreId },
-              attributes: ['id', 'title_ar']
-            }
-          ]
+    // Get top performing books with error handling
+    let topBooks = [];
+    try {
+      topBooks = await LibraryBook.findAll({
+        where: { 
+          bookstore_id: bookstoreId,
+          status: 'approved'
         },
-        {
-          model: User,
-          as: 'customer',
-          attributes: ['id', 'full_name']
-        }
-      ],
-      order: [['created_at', 'DESC']],
-      limit: 10
-    });
+        order: [['sales_count', 'DESC']],
+        limit: 5,
+        attributes: [
+          'id', 'title_ar', 'author_ar', 'price', 
+          'sales_count', 'views_count', 'cover_image_url'
+        ]
+      });
+      console.log('Top books loaded:', topBooks.length);
+    } catch (error) {
+      console.error('Error loading top books:', error);
+      topBooks = [];
+    }
     
-    // Get shared books performance
-    const sharedBooks = await BookShare.findAll({
-      where: { 
-        is_active: true,
-        expires_at: { [Op.gt]: new Date() }
-      },
-      include: [
-        {
-          model: LibraryBook,
-          as: 'book',
-          where: { bookstore_id: bookstoreId },
-          attributes: ['id', 'title_ar', 'cover_image_url']
-        }
-      ],
-      order: [['views_count', 'DESC']],
-      limit: 5
-    });
+    // Get recent orders with error handling
+    let recentOrders = [];
+    try {
+      recentOrders = await Order.findAll({
+        include: [
+          {
+            model: OrderItem,
+            as: 'items',
+            include: [
+              {
+                model: LibraryBook,
+                as: 'libraryBook',
+                where: { bookstore_id: bookstoreId },
+                attributes: ['id', 'title_ar']
+              }
+            ]
+          },
+          {
+            model: User,
+            as: 'customer',
+            attributes: ['id', 'full_name']
+          }
+        ],
+        order: [['created_at', 'DESC']],
+        limit: 10
+      });
+      console.log('Recent orders loaded:', recentOrders.length);
+    } catch (error) {
+      console.error('Error loading recent orders:', error);
+      recentOrders = [];
+    }
     
-    // Get book status distribution
-    const bookStatusDistribution = await LibraryBook.findAll({
-      where: { bookstore_id: bookstoreId },
-      attributes: [
-        'status',
-        [fn('COUNT', col('id')), 'count']
-      ],
-      group: ['status'],
-      raw: true
-    });
+    // Get shared books performance with error handling
+    let sharedBooks = [];
+    try {
+      sharedBooks = await BookShare.findAll({
+        where: { 
+          is_active: true,
+          expires_at: { [Op.gt]: new Date() }
+        },
+        include: [
+          {
+            model: LibraryBook,
+            as: 'book',
+            where: { bookstore_id: bookstoreId },
+            attributes: ['id', 'title_ar', 'cover_image_url']
+          }
+        ],
+        order: [['views_count', 'DESC']],
+        limit: 5
+      });
+      console.log('Shared books loaded:', sharedBooks.length);
+    } catch (error) {
+      console.error('Error loading shared books:', error);
+      sharedBooks = [];
+    }
+    
+    // Get book status distribution with error handling
+    let bookStatusDistribution = [];
+    try {
+      bookStatusDistribution = await LibraryBook.findAll({
+        where: { bookstore_id: bookstoreId },
+        attributes: [
+          'status',
+          [fn('COUNT', col('id')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+      });
+      console.log('Book status distribution loaded');
+    } catch (error) {
+      console.error('Error loading book status distribution:', error);
+      bookStatusDistribution = [];
+    }
     
     const dashboardData = {
       bookstore: {
@@ -393,7 +440,27 @@ const getOverviewAnalytics = async (bookstoreId, startDate) => {
   return metrics;
 };
 
+// Helper function to return default metrics when data is not available
+const getDefaultMetrics = () => {
+  return {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalViews: 0,
+    activeBooks: 0,
+    pendingBooks: 0,
+    avgOrderValue: 0,
+    conversionRate: 0,
+    avgRating: 0,
+    totalReviews: 0
+  };
+};
+
 module.exports = {
   getLibraryDashboard,
-  getLibraryAnalytics
+  getLibraryAnalytics,
+  getOverviewAnalytics,
+  getRevenueAnalytics,
+  getBooksAnalytics,
+  getCustomersAnalytics,
+  getActivityAnalytics
 };

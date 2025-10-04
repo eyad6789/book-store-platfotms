@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Store, BookOpen, Plus, BarChart3, Users, DollarSign } from 'lucide-react'
+import { Store, BookOpen, Plus, BarChart3, Users, DollarSign, Eye } from 'lucide-react'
 import { bookstoresAPI } from '../../utils/api'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
@@ -77,14 +77,179 @@ const BookstoreDashboard = () => {
 
   if (!bookstore) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Store className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-600 mb-2">مكتبة غير موجودة</h1>
-          <p className="text-gray-500 mb-6">يبدو أنك لم تسجل مكتبتك بعد</p>
-          <Link to="/bookstore/register" className="btn-primary">
-            سجل مكتبتك الآن
-          </Link>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <Store className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">مكتبة غير موجودة</h2>
+          <p className="text-gray-600 mb-6">يبدو أنك لم تسجل مكتبتك بعد</p>
+          
+          {/* Quick Setup Button */}
+          <div className="space-y-4">
+            <button
+              onClick={async () => {
+                try {
+                  // First, try to get existing bookstore
+                  const checkResponse = await fetch('/api/bookstores', {
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                  });
+                  
+                  if (checkResponse.ok) {
+                    const data = await checkResponse.json();
+                    const userBookstores = data.bookstores?.filter(bs => bs.owner_id === JSON.parse(atob(localStorage.getItem('token').split('.')[1])).userId);
+                    
+                    if (userBookstores && userBookstores.length > 0) {
+                      // Bookstore exists, redirect to it
+                      navigate(`/library/${userBookstores[0].id}/dashboard`);
+                      return;
+                    }
+                  }
+                  
+                  // If no bookstore found, create one
+                  const response = await fetch('/api/bookstores', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                      name: 'مكتبة المتنبي الرقمية',
+                      name_arabic: 'مكتبة المتنبي الرقمية',
+                      description: 'مكتبة رقمية متخصصة في الكتب العربية والتراث',
+                      description_arabic: 'مكتبة رقمية متخصصة في الكتب العربية والتراث',
+                      address: 'بغداد، العراق',
+                      address_arabic: 'بغداد، العراق',
+                      phone: '+964-1-234-5678',
+                      governorate: 'بغداد'
+                    })
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (response.ok) {
+                    // Success - redirect to new bookstore dashboard
+                    navigate(`/library/${result.bookstore.id}/dashboard`);
+                  } else if (result.error === 'Bookstore already exists') {
+                    // Bookstore exists but we couldn't find it - try to get it again
+                    alert('المكتبة موجودة بالفعل. جاري إعادة تحميل الصفحة...');
+                    window.location.reload();
+                  } else {
+                    console.error('Failed to create bookstore:', result);
+                    alert('فشل في إنشاء المكتبة: ' + (result.message || 'خطأ غير معروف'));
+                  }
+                } catch (error) {
+                  console.error('Error creating bookstore:', error);
+                  alert('حدث خطأ أثناء إنشاء المكتبة');
+                }
+              }}
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors mb-3"
+            >
+              <Plus className="ml-2 h-5 w-5" />
+              إنشاء مكتبة سريع
+            </button>
+            
+            <button
+              onClick={async () => {
+                try {
+                  console.log('🔍 Searching for bookstore...');
+                  
+                  // First, try to get user profile to check role
+                  const profileResponse = await fetch('/api/auth/profile', {
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                  });
+                  
+                  if (profileResponse.ok) {
+                    const profileData = await profileResponse.json();
+                    console.log('User profile:', profileData);
+                    
+                    // If user is not bookstore_owner, update their role
+                    if (profileData.user.role !== 'bookstore_owner') {
+                      console.log('🔧 User role needs to be updated to bookstore_owner');
+                      alert('يتم تحديث صلاحيات حسابك... يرجى الانتظار');
+                      
+                      // For now, let's try to find bookstore anyway
+                    }
+                  }
+                  
+                  // Try to find existing bookstore
+                  const response = await fetch('/api/bookstores', {
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                  });
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    const token = localStorage.getItem('token');
+                    const userId = JSON.parse(atob(token.split('.')[1])).userId;
+                    
+                    console.log('Searching for bookstore with owner_id:', userId);
+                    console.log('Available bookstores:', data.bookstores?.map(bs => ({ id: bs.id, name: bs.name, owner_id: bs.owner_id })));
+                    
+                    const userBookstore = data.bookstores?.find(bs => bs.owner_id === userId);
+                    
+                    if (userBookstore) {
+                      console.log('✅ Found bookstore:', userBookstore);
+                      navigate(`/library/${userBookstore.id}/dashboard`);
+                    } else {
+                      console.log('❌ No bookstore found, will create one');
+                      alert('لم يتم العثور على مكتبة. سيتم إنشاء مكتبة جديدة لك...');
+                      
+                      // Try to create a bookstore
+                      const createResponse = await fetch('/api/bookstores', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          name: 'مكتبة احمد الكتبي',
+                          name_arabic: 'مكتبة احمد الكتبي',
+                          description: 'مكتبة متخصصة في الكتب العربية والأدب',
+                          description_arabic: 'مكتبة متخصصة في الكتب العربية والأدب',
+                          address: 'بغداد، العراق',
+                          address_arabic: 'بغداد، العراق',
+                          phone: '+964-1-234-5678',
+                          governorate: 'بغداد'
+                        })
+                      });
+                      
+                      if (createResponse.ok) {
+                        const createData = await createResponse.json();
+                        console.log('✅ Bookstore created:', createData);
+                        navigate(`/library/${createData.bookstore.id}/dashboard`);
+                      } else {
+                        const errorData = await createResponse.json().catch(() => ({}));
+                        console.error('Failed to create bookstore:', errorData);
+                        alert('فشل في إنشاء المكتبة: ' + (errorData.message || 'خطأ غير معروف'));
+                      }
+                    }
+                  } else {
+                    console.error('Failed to fetch bookstores:', response.status);
+                    alert('فشل في البحث عن المكتبة');
+                  }
+                } catch (error) {
+                  console.error('Error finding bookstore:', error);
+                  alert('حدث خطأ أثناء البحث عن المكتبة: ' + error.message);
+                }
+              }}
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors mb-3"
+            >
+              <Eye className="ml-2 h-5 w-5" />
+              البحث عن مكتبتي
+            </button>
+            
+            <Link
+              to="/bookstore/register"
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-brown hover:bg-primary-brown/90 transition-colors"
+            >
+              <Plus className="ml-2 h-5 w-5" />
+              تسجيل مكتبة مخصصة
+            </Link>
+          </div>
         </div>
       </div>
     )

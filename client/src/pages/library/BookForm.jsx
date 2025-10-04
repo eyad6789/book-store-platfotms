@@ -22,7 +22,7 @@ function BookForm() {
     language: 'ar',
     page_count: '',
     price: '',
-    stock_quantity: '',
+    stock_quantity: '0',
     condition: 'new'
   });
   
@@ -133,10 +133,6 @@ function BookForm() {
     
     if (!formData.category_id) {
       newErrors.category_id = 'التصنيف مطلوب';
-    }
-    
-    if (!formData.stock_quantity || parseInt(formData.stock_quantity) < 0) {
-      newErrors.stock_quantity = 'الكمية يجب أن لا تكون سالبة';
     }
     
     if (formData.isbn && formData.isbn.length < 10) {
@@ -540,11 +536,11 @@ function BookForm() {
           </div>
         </div>
         
-        {/* Pricing and Stock */}
+        {/* Pricing and Details */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">السعر والمخزون</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">السعر والتفاصيل</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 السعر (د.ع) *
@@ -563,26 +559,6 @@ function BookForm() {
               />
               {errors.price && (
                 <p className="text-sm text-red-600 mt-1">{errors.price}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الكمية المتوفرة *
-              </label>
-              <input
-                type="number"
-                name="stock_quantity"
-                value={formData.stock_quantity}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.stock_quantity ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="10"
-                min="0"
-              />
-              {errors.stock_quantity && (
-                <p className="text-sm text-red-600 mt-1">{errors.stock_quantity}</p>
               )}
             </div>
             

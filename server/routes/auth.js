@@ -1,10 +1,46 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { User } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, userSchemas } = require('../middleware/validation');
 
 const router = express.Router();
+
+// Configure multer for avatar uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, '..', 'uploads', 'avatars');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -267,6 +303,65 @@ router.post('/logout', authenticateToken, (req, res) => {
   res.json({
     message: 'Logout successful'
   });
+});
+
+// @route   POST /api/auth/upload-avatar
+// @desc    Upload user avatar
+// @access  Private
+router.post('/upload-avatar', authenticateToken, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No avatar provided',
+        message: 'Please select an avatar to upload'
+      });
+    }
+
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User profile not found'
+      });
+    }
+
+    // Delete old avatar if exists
+    if (user.avatar_url) {
+      const oldAvatarPath = path.join(__dirname, '..', user.avatar_url);
+      if (fs.existsSync(oldAvatarPath)) {
+        fs.unlinkSync(oldAvatarPath);
+      }
+    }
+
+    // Update user with new avatar URL
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    await user.update({ avatar_url: avatarUrl });
+
+    // Update localStorage user data
+    const updatedUser = user.toJSON();
+
+    res.json({
+      message: 'Avatar uploaded successfully',
+      avatar_url: avatarUrl,
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    
+    // Clean up uploaded file if there was an error
+    if (req.file) {
+      const filePath = req.file.path;
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    res.status(500).json({
+      error: 'Failed to upload avatar',
+      message: 'Something went wrong while uploading the avatar'
+    });
+  }
 });
 
 module.exports = router;

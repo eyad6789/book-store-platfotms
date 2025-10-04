@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   Users, BookOpen, Store, TrendingUp, Activity,
   Award, Eye, ShoppingBag, DollarSign, Calendar,
-  BarChart3, PieChart, Download, Filter, RefreshCw
+  BarChart3, PieChart, Download, Filter, RefreshCw,
+  Check, X, Clock, MapPin, Phone, Mail
 } from 'lucide-react';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -455,24 +456,172 @@ function UsersTab({ data }) {
 
 // Libraries Tab Component
 function LibrariesTab({ data }) {
+  const [pendingBookstores, setPendingBookstores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    fetchPendingBookstores();
+  }, []);
+  
+  const fetchPendingBookstores = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/bookstores/pending', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setPendingBookstores(result.bookstores || []);
+      }
+    } catch (error) {
+      console.error('Error fetching pending bookstores:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleApproval = async (bookstoreId, action) => {
+    try {
+      const response = await fetch(`/api/admin/bookstores/${bookstoreId}/${action}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        // Refresh the list
+        fetchPendingBookstores();
+        // Show success message
+        alert(`تم ${action === 'approve' ? 'قبول' : 'رفض'} المكتبة بنجاح`);
+      } else {
+        alert('حدث خطأ أثناء معالجة الطلب');
+      }
+    } catch (error) {
+      console.error('Error processing bookstore:', error);
+      alert('حدث خطأ أثناء معالجة الطلب');
+    }
+  };
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-600">إجمالي المكتبات</h3>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{data.total}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{data?.total || 0}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-600">المعتمدة</h3>
-          <p className="text-3xl font-bold text-green-600 mt-2">{data.approved}</p>
+          <p className="text-3xl font-bold text-green-600 mt-2">{data?.approved || 0}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-600">في الانتظار</h3>
-          <p className="text-3xl font-bold text-yellow-600 mt-2">{data.pending}</p>
+          <p className="text-3xl font-bold text-yellow-600 mt-2">{data?.pending || 0}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-600">المرفوضة</h3>
-          <p className="text-3xl font-bold text-red-600 mt-2">{data.rejected}</p>
+          <p className="text-3xl font-bold text-red-600 mt-2">{data?.rejected || 0}</p>
+        </div>
+      </div>
+      
+      {/* Pending Bookstores Section */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-yellow-500" />
+              المكتبات في انتظار الموافقة
+            </h3>
+            <button
+              onClick={fetchPendingBookstores}
+              className="flex items-center gap-2 px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+            >
+              <RefreshCw className="w-4 h-4" />
+              تحديث
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="medium" text="جاري تحميل المكتبات..." />
+            </div>
+          ) : pendingBookstores.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Store className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p>لا توجد مكتبات في انتظار الموافقة</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingBookstores.map((bookstore) => (
+                <div key={bookstore.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <Store className="w-6 h-6 text-gray-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            {bookstore.name_arabic || bookstore.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            مالك المكتبة: {bookstore.owner?.full_name}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin className="w-4 h-4" />
+                            <span>{bookstore.address_arabic || bookstore.address}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="w-4 h-4" />
+                            <span>{bookstore.phone}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="w-4 h-4" />
+                            <span>{bookstore.email}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-2">الوصف:</p>
+                          <p className="text-sm text-gray-800">
+                            {bookstore.description_arabic || bookstore.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => handleApproval(bookstore.id, 'approve')}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <Check className="w-4 h-4" />
+                        قبول
+                      </button>
+                      <button
+                        onClick={() => handleApproval(bookstore.id, 'reject')}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        رفض
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

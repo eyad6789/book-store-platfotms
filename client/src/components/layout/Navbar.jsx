@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { 
   Menu, 
@@ -10,15 +10,21 @@ import {
   Store,
   LogOut,
   Settings,
-  Package
+  Package,
+  Plus,
+  LayoutDashboard
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
+import { bookstoresAPI } from '../../utils/api'
+import { getImageUrl } from '../../utils/helpers'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [bookstore, setBookstore] = useState(null)
+  const [hasCheckedBookstore, setHasCheckedBookstore] = useState(false)
   
   const { user, isAuthenticated, logout } = useAuth()
   const { itemCount } = useCart()
@@ -41,6 +47,33 @@ const Navbar = () => {
 
   const isActivePath = (path) => {
     return location.pathname === path
+  }
+
+  // Check if bookstore owner has a registered library
+  useEffect(() => {
+    const checkBookstore = async () => {
+      if (user?.role === 'bookstore_owner' && isAuthenticated && !hasCheckedBookstore) {
+        try {
+          const response = await bookstoresAPI.getMyBookstore()
+          setBookstore(response.data.bookstore)
+        } catch (error) {
+          // User is bookstore owner but hasn't registered a library yet
+          setBookstore(null)
+        } finally {
+          setHasCheckedBookstore(true)
+        }
+      } else if (user?.role !== 'bookstore_owner') {
+        setBookstore(null)
+        setHasCheckedBookstore(false)
+      }
+    }
+
+    checkBookstore()
+  }, [user, isAuthenticated, hasCheckedBookstore])
+
+  const handleCreateLibrary = async () => {
+    navigate('/bookstore/register')
+    setIsUserMenuOpen(false)
   }
 
   const navLinks = [
@@ -117,7 +150,17 @@ const Navbar = () => {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 rtl:space-x-reverse p-2 text-gray-600 hover:text-primary-brown transition-colors"
                 >
-                  <User className="w-6 h-6" />
+                  {user?.avatar_url ? (
+                    <img 
+                      src={getImageUrl(user.avatar_url)} 
+                      alt={user.full_name}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-primary-brown"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-primary-brown rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                  )}
                   <span className="hidden md:block text-sm font-medium">
                     {user?.full_name}
                   </span>
@@ -145,14 +188,43 @@ const Navbar = () => {
                     </Link>
 
                     {user?.role === 'bookstore_owner' && (
-                      <Link
-                        to="/bookstore/dashboard"
-                        className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <Store className="w-4 h-4" />
-                        <span>إدارة المكتبة</span>
-                      </Link>
+                      <>
+                        {!bookstore && hasCheckedBookstore ? (
+                          // User has NOT registered a library yet
+                          <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50">
+                            <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                              يبدو أنك لم تسجل مكتبتك بعد
+                            </p>
+                            <button
+                              onClick={handleCreateLibrary}
+                              className="w-full inline-flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>إنشاء مكتبة رقمية</span>
+                            </button>
+                          </div>
+                        ) : bookstore ? (
+                          // User HAS registered a library
+                          <>
+                            <Link
+                              to={`/library/${bookstore.id}/dashboard`}
+                              className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => setIsUserMenuOpen(false)}
+                            >
+                              <LayoutDashboard className="w-4 h-4" />
+                              <span>لوحة التحكم</span>
+                            </Link>
+                            <Link
+                              to={`/library/${bookstore.id}/books/add`}
+                              className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => setIsUserMenuOpen(false)}
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>إضافة كتاب</span>
+                            </Link>
+                          </>
+                        ) : null}
+                      </>
                     )}
 
                     {user?.role === 'admin' && (

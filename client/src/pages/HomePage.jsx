@@ -65,7 +65,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-primary-cream">
       {/* Hero Section */}
-      <section className="relative bg-gradient-primary text-white overflow-hidden">
+      <section className="relative bg-primary-dark text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
@@ -80,7 +80,7 @@ const HomePage = () => {
                 <BookOpen className="w-5 h-5 ml-2" />
                 تصفح الكتب
               </Link>
-              <Link to="/bookstores" className="btn-outline border-white text-white hover:bg-white hover:text-primary-brown text-lg px-8 py-4">
+              <Link to="/bookstores" className="btn-outline border-white text-white hover:bg-white hover:text-primary-dark text-lg px-8 py-4">
                 <Store className="w-5 h-5 ml-2" />
                 المكتبات الشريكة
               </Link>
@@ -254,10 +254,16 @@ const HomePage = () => {
           <h2 className="text-3xl font-bold mb-4">
             هل تملك مكتبة؟
           </h2>
+          <p className="text-2xl mb-4 text-primary-gold font-semibold italic leading-relaxed">
+            "هُنا حَيثُ تُولَد الكَلِمَة وَتَبقى خالِدَة"
+          </p>
           <p className="text-xl mb-8 text-primary-cream opacity-90">
             انضم إلى شبكة المتنبي وابدأ في بيع كتبك لآلاف القراء في العراق والعالم العربي
           </p>
-          <Link to="/bookstore/register" className="btn-secondary text-lg px-8 py-4">
+          <Link 
+            to="/bookstore/register" 
+            className="inline-flex items-center btn-secondary text-lg px-8 py-4"
+          >
             <Store className="w-5 h-5 ml-2" />
             سجل مكتبتك الآن
           </Link>

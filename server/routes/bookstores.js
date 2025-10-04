@@ -1,6 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Bookstore, User, Book } = require('../models');
+const { sequelize } = require('../config/database');
+const { Bookstore, User, Book, BookReview } = require('../models');
 const { authenticateToken, requireRole, requireBookstoreOwner } = require('../middleware/auth');
 const { validate, bookstoreSchemas } = require('../middleware/validation');
 const multer = require('multer');
@@ -138,6 +139,56 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/bookstores/my-bookstore
+// @desc    Get current user's bookstore
+// @access  Private (Bookstore owners only)
+router.get('/my-bookstore', authenticateToken, async (req, res) => {
+  try {
+    console.log('📚 My-bookstore endpoint - User ID:', req.userId, 'Role:', req.user?.role);
+    
+    // Check if user is a bookstore owner
+    if (req.user?.role !== 'bookstore_owner') {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Only bookstore owners can access this endpoint'
+      });
+    }
+
+    // Find bookstore using Sequelize model (most reliable)
+    const store = await Bookstore.findOne({
+      where: { owner_id: req.userId },
+      attributes: [
+        'id', 'name', 'owner_id', 'phone', 'email', 
+        'address', 'address_arabic', 'description', 
+        'description_arabic', 'logo_url', 'is_approved', 
+        'is_active', 'created_at', 'updated_at'
+      ]
+    });
+
+    if (!store) {
+      console.log('  ❌ No bookstore found for owner:', req.userId);
+      return res.status(404).json({
+        error: 'Bookstore not found',
+        message: 'You have not registered a bookstore yet'
+      });
+    }
+
+    console.log('  ✅ Bookstore found:', store.name, '(ID:', store.id, ')');
+
+    // Return bookstore data
+    res.json({ 
+      bookstore: store
+    });
+
+  } catch (error) {
+    console.error('❌ My-bookstore API error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch bookstore',
+      message: 'Something went wrong while fetching your bookstore'
+    });
+  }
+});
+
 // @route   GET /api/bookstores/:id
 // @desc    Get single bookstore by ID
 // @access  Public
@@ -184,15 +235,23 @@ router.get('/:id', async (req, res) => {
     });
 
     // Get total reviews count for this bookstore
-    const BookReview = require('../models').BookReview;
-    const totalReviewsCount = await BookReview.count({
-      include: [{
-        model: Book,
-        as: 'book',
-        where: { bookstore_id: bookstore.id },
-        attributes: []
-      }]
-    });
+    let totalReviewsCount = 0;
+    try {
+      if (BookReview) {
+        totalReviewsCount = await BookReview.count({
+          include: [{
+            model: Book,
+            as: 'book',
+            where: { bookstore_id: bookstore.id },
+            attributes: [],
+            required: true
+          }]
+        });
+      }
+    } catch (reviewError) {
+      console.log('Could not count reviews:', reviewError.message);
+      // Continue with 0 reviews if there's an error
+    }
 
     const bookstoreData = bookstore.toJSON();
     bookstoreData.books = books;
@@ -367,70 +426,6 @@ router.get('/test-simple', async (req, res) => {
   } catch (error) {
     console.error('Test simple error:', error);
     res.status(500).json({ error: error.message });
-  }
-});
-
-// @route   GET /api/bookstores/my-bookstore
-// @desc    Get current user's bookstore
-// @access  Private (Bookstore owners only)
-router.get('/my-bookstore', authenticateToken, async (req, res) => {
-  try {
-    // Check if user is a bookstore owner
-    if (req.user.role !== 'bookstore_owner') {
-      return res.status(403).json({
-        error: 'Access denied',
-        message: 'Only bookstore owners can access this endpoint'
-      });
-    }
-
-    // Try simple query first without includes
-    const bookstore = await Bookstore.findOne({
-      where: { owner_id: req.userId }
-    });
-    
-    // If bookstore found, get owner info separately
-    let ownerInfo = null;
-    if (bookstore) {
-      ownerInfo = await User.findByPk(bookstore.owner_id, {
-        attributes: ['id', 'full_name', 'email']
-      });
-    }
-
-    if (!bookstore) {
-      return res.status(404).json({
-        error: 'Bookstore not found',
-        message: 'You have not registered a bookstore yet'
-      });
-    }
-
-    // Get bookstore statistics
-    let bookCount = 0;
-    try {
-      bookCount = await Book.count({
-        where: { 
-          bookstore_id: bookstore.id,
-          is_active: true 
-        }
-      });
-    } catch (countError) {
-      console.error('Error counting books:', countError);
-      // Continue with bookCount = 0 if there's an error
-    }
-
-    const bookstoreData = bookstore.toJSON();
-    bookstoreData.owner = ownerInfo;
-    bookstoreData.statistics = {
-      total_books: bookCount
-    };
-
-    res.json({ bookstore: bookstoreData });
-
-  } catch (error) {
-    console.error('Get my bookstore error:', error);
-    res.status(500).json({
-      error: 'Failed to fetch bookstore',
-      message: 'Something went wrong while fetching your bookstore'
-    });
   }
 });
 

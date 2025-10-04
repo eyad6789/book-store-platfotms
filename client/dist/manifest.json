@@ -1,0 +1,126 @@
+{
+  "name": "المتنبي - متجر الكتب العراقي",
+  "short_name": "المتنبي",
+  "description": "أكبر متجر إلكتروني للكتب في العراق - اكتشف آلاف الكتب العربية والمترجمة من أفضل المكتبات العراقية",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["books", "shopping", "education", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "الصفحة الرئيسية للمتنبي"
+    },
+    {
+      "src": "/screenshots/mobile-search.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "البحث المتقدم في الكتب"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "البحث في الكتب",
+      "short_name": "بحث",
+      "description": "ابحث في آلاف الكتب",
+      "url": "/search",
+      "icons": [
+        {
+          "src": "/icons/search-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "قائمة الأمنيات",
+      "short_name": "الأمنيات",
+      "description": "عرض قائمة الكتب المفضلة",
+      "url": "/wishlist",
+      "icons": [
+        {
+          "src": "/icons/heart-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "سلة التسوق",
+      "short_name": "السلة",
+      "description": "عرض سلة التسوق",
+      "url": "/cart",
+      "icons": [
+        {
+          "src": "/icons/cart-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
+}

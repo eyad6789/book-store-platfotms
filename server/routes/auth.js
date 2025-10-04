@@ -9,6 +9,8 @@ const { validate, userSchemas } = require('../middleware/validation');
 
 const router = express.Router();
 
+console.log('🔧 Configuring auth routes with avatar upload...');
+
 // Configure multer for avatar uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -305,6 +307,17 @@ router.post('/logout', authenticateToken, (req, res) => {
   });
 });
 
+// @route   GET /api/auth/test-upload
+// @desc    Test upload endpoint availability
+// @access  Public
+router.get('/test-upload', (req, res) => {
+  res.json({
+    message: 'Upload endpoint is available',
+    uploadRoute: 'POST /api/auth/upload-avatar',
+    status: 'Ready'
+  });
+});
+
 // @route   POST /api/auth/upload-avatar
 // @desc    Upload user avatar
 // @access  Private
@@ -363,5 +376,7 @@ router.post('/upload-avatar', authenticateToken, upload.single('avatar'), async 
     });
   }
 });
+
+console.log('✅ Auth routes configured successfully (including /upload-avatar)');
 
 module.exports = router;

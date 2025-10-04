@@ -58,6 +58,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// Ensure upload directories exist
+const uploadDirs = [
+  path.join(__dirname, 'uploads'),
+  path.join(__dirname, 'uploads', 'avatars'),
+  path.join(__dirname, 'uploads', 'bookstores'),
+  path.join(__dirname, 'uploads', 'books')
+];
+
+uploadDirs.forEach(dir => {
+  if (!require('fs').existsSync(dir)) {
+    require('fs').mkdirSync(dir, { recursive: true });
+    console.log(`📁 Created directory: ${dir}`);
+  }
+});
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -66,7 +81,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API routes
+console.log('📝 Registering API routes...');
 app.use('/api/auth', authRoutes);
+console.log('✅ Auth routes registered');
 app.use('/api/books', bookRoutes);
 app.use('/api/bookstores', bookstoreRoutes);
 app.use('/api/orders', orderRoutes);
@@ -77,6 +94,7 @@ app.use('/api/library', libraryDashboardRoutes);
 app.use('/api/admin', adminAnalyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/setup', setupRoutes);
+console.log('✅ All API routes registered');
 
 // API root endpoint
 app.get('/api', (req, res) => {
@@ -144,16 +162,17 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({
     error: 'Not Found',
     message: `The requested resource ${req.originalUrl} was not found`,
-    availableRoutes: [
-      'GET /api/health',
+    hint: 'Please check the API documentation or the server logs for available routes',
+    requestedRoute: `${req.method} ${req.originalUrl}`,
+    commonRoutes: [
       'POST /api/auth/register',
       'POST /api/auth/login',
+      'GET /api/auth/me',
+      'PUT /api/auth/profile',
+      'POST /api/auth/upload-avatar',
       'GET /api/books',
-      'GET /api/books/search',
-      'GET /api/books/categories',
       'GET /api/bookstores',
-      'GET /api/wishlist',
-      'GET /api/analytics/bookstore/:id'
+      'GET /api/library/:bookstoreId/dashboard'
     ]
   });
 });

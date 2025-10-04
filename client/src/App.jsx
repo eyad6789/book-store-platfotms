@@ -16,6 +16,14 @@ import RegisterPage from './pages/auth/RegisterPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
 
+// Legal and service pages
+import PrivacyPage from './pages/PrivacyPage'
+import TermsPage from './pages/TermsPage'
+import HelpPage from './pages/HelpPage'
+import ShippingPage from './pages/ShippingPage'
+import ReturnsPage from './pages/ReturnsPage'
+import SitemapPage from './pages/SitemapPage'
+
 // Protected pages
 import ProfilePage from './pages/ProfilePage'
 import OrdersPage from './pages/OrdersPage'
@@ -70,6 +78,14 @@ function App() {
           {/* Auth routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          
+          {/* Legal and service pages */}
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/shipping" element={<ShippingPage />} />
+          <Route path="/returns" element={<ReturnsPage />} />
+          <Route path="/sitemap" element={<SitemapPage />} />
           
           {/* Protected customer routes */}
           <Route path="/profile" element={

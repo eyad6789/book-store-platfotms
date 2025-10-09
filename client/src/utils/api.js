@@ -68,6 +68,9 @@ export const authAPI = {
   uploadAvatar: (formData) => api.post('/auth/upload-avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  forgotPassword: (emailData) => api.post('/auth/forgot-password', emailData),
+  validateResetToken: (token) => api.get(`/auth/reset-password/${token}/validate`),
+  resetPassword: (resetData) => api.post('/auth/reset-password', resetData),
 }
 
 // Books API

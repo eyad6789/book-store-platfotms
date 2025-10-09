@@ -63,7 +63,8 @@ const uploadDirs = [
   path.join(__dirname, 'uploads'),
   path.join(__dirname, 'uploads', 'avatars'),
   path.join(__dirname, 'uploads', 'bookstores'),
-  path.join(__dirname, 'uploads', 'books')
+  path.join(__dirname, 'uploads', 'books'),
+  path.join(__dirname, 'uploads', 'library-books')
 ];
 
 uploadDirs.forEach(dir => {

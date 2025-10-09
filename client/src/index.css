@@ -67,13 +67,22 @@
     @apply p-6;
   }
   
-  /* Book card specific styles */
+  /* Book card specific styles - Enhanced */
   .book-card {
-    @apply card hover:scale-105 transition-transform duration-300 cursor-pointer;
+    @apply bg-white rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-2 transition-all duration-300 cursor-pointer overflow-hidden;
   }
   
   .book-card-image {
-    @apply w-full h-64 object-cover;
+    @apply w-full h-64 object-cover transition-transform duration-500;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-white/90 backdrop-blur-lg border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply bg-gray-900/80 backdrop-blur-lg border border-gray-700/30;
   }
   
   /* Navigation styles */
@@ -165,6 +174,14 @@
     background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
   }
   
+  .gradient-hero {
+    background: linear-gradient(135deg, #8B4513 0%, #6B3410 100%);
+  }
+  
+  .gradient-overlay {
+    background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+  }
+  
   /* RTL specific utilities */
   .rtl-flip {
     transform: scaleX(-1);
@@ -223,5 +240,97 @@
 @media (prefers-color-scheme: dark) {
   .dark-mode {
     @apply bg-gray-900 text-gray-100;
+  }
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }

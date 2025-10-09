@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { User } = require('../models');
+const crypto = require('crypto');
+const { User, PasswordResetToken } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, userSchemas } = require('../middleware/validation');
 
@@ -373,6 +374,213 @@ router.post('/upload-avatar', authenticateToken, upload.single('avatar'), async 
     res.status(500).json({
       error: 'Failed to upload avatar',
       message: 'Something went wrong while uploading the avatar'
+    });
+  }
+});
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request password reset
+// @access  Public
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: 'Email required',
+        message: 'يرجى إدخال البريد الإلكتروني'
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ where: { email } });
+    
+    // Don't reveal if user exists (security best practice)
+    if (!user) {
+      return res.json({
+        message: 'إذا كان البريد الإلكتروني موجوداً في نظامنا، ستتلقى رابط إعادة تعيين كلمة المرور'
+      });
+    }
+
+    // Delete any existing unused reset tokens for this user
+    await PasswordResetToken.destroy({
+      where: {
+        user_id: user.id,
+        used: false
+      }
+    });
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Set expiration (1 hour from now)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Save token to database
+    await PasswordResetToken.create({
+      user_id: user.id,
+      token: hashedToken,
+      expires_at: expiresAt
+    });
+
+    // In production, send email with reset link
+    // For now, log it (in development)
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:3001'}/auth/reset-password?token=${resetToken}`;
+    
+    console.log('🔐 Password Reset Request');
+    console.log('   User:', user.email);
+    console.log('   Reset URL:', resetUrl);
+    console.log('   Expires:', expiresAt);
+
+    // TODO: Send email with resetUrl
+    // await sendResetPasswordEmail(user.email, resetUrl);
+
+    res.json({
+      message: 'إذا كان البريد الإلكتروني موجوداً في نظامنا، ستتلقى رابط إعادة تعيين كلمة المرور',
+      // Include URL in development mode
+      ...(process.env.NODE_ENV === 'development' && { resetUrl })
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      error: 'Failed to process request',
+      message: 'حدث خطأ، يرجى المحاولة مرة أخرى'
+    });
+  }
+});
+
+// @route   GET /api/auth/reset-password/:token/validate
+// @desc    Validate reset token
+// @access  Public
+router.get('/reset-password/:token/validate', async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    if (!token) {
+      return res.status(400).json({
+        error: 'Token required',
+        message: 'رابط غير صالح'
+      });
+    }
+
+    // Hash the token to match database
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find token in database
+    const resetToken = await PasswordResetToken.findOne({
+      where: {
+        token: hashedToken,
+        used: false
+      },
+      include: [{
+        model: User,
+        as: 'user'
+      }]
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({
+        error: 'Invalid token',
+        message: 'رابط إعادة التعيين غير صالح'
+      });
+    }
+
+    // Check if token is expired
+    if (new Date() > resetToken.expires_at) {
+      return res.status(400).json({
+        error: 'Token expired',
+        message: 'رابط إعادة التعيين منتهي الصلاحية'
+      });
+    }
+
+    res.json({
+      message: 'Token is valid',
+      valid: true
+    });
+
+  } catch (error) {
+    console.error('Validate reset token error:', error);
+    res.status(500).json({
+      error: 'Failed to validate token',
+      message: 'حدث خطأ، يرجى المحاولة مرة أخرى'
+    });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset password with token
+// @access  Public
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        error: 'Missing fields',
+        message: 'يرجى إدخال جميع الحقول المطلوبة'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Invalid password',
+        message: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل'
+      });
+    }
+
+    // Hash the token to match database
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find token in database
+    const resetToken = await PasswordResetToken.findOne({
+      where: {
+        token: hashedToken,
+        used: false
+      },
+      include: [{
+        model: User,
+        as: 'user'
+      }]
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({
+        error: 'Invalid token',
+        message: 'رابط إعادة التعيين غير صالح'
+      });
+    }
+
+    // Check if token is expired
+    if (new Date() > resetToken.expires_at) {
+      return res.status(400).json({
+        error: 'Token expired',
+        message: 'رابط إعادة التعيين منتهي الصلاحية'
+      });
+    }
+
+    // Update user password
+    const user = resetToken.user;
+    user.password_hash = password; // Will be hashed by model hook
+    await user.save();
+
+    // Mark token as used
+    resetToken.used = true;
+    await resetToken.save();
+
+    console.log('✅ Password reset successful for user:', user.email);
+
+    res.json({
+      message: 'تم تغيير كلمة المرور بنجاح',
+      success: true
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      error: 'Failed to reset password',
+      message: 'حدث خطأ، يرجى المحاولة مرة أخرى'
     });
   }
 });

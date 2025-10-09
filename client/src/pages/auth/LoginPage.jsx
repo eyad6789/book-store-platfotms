@@ -155,7 +155,7 @@ const LoginPage = () => {
 
               <div className="text-sm">
                 <Link
-                  to="/forgot-password"
+                  to="/auth/forgot-password"
                   className="text-primary-brown hover:text-primary-dark transition-colors"
                 >
                   نسيت كلمة المرور؟

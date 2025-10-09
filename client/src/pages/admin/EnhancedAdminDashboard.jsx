@@ -630,8 +630,58 @@ function LibrariesTab({ data }) {
 
 // Books Tab Component
 function BooksTab({ data }) {
+  const [pendingBooks, setPendingBooks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    fetchPendingBooks();
+  }, []);
+  
+  const fetchPendingBooks = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/books/pending', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setPendingBooks(result.books || []);
+      }
+    } catch (error) {
+      console.error('Error fetching pending books:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleBookApproval = async (bookId, action) => {
+    try {
+      const response = await fetch(`/api/admin/books/${bookId}/${action}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: action === 'reject' ? JSON.stringify({ reason: 'تم الرفض من قبل الإدارة' }) : undefined
+      });
+      
+      if (response.ok) {
+        fetchPendingBooks();
+        alert(`تم ${action === 'approve' ? 'قبول' : 'رفض'} الكتاب بنجاح`);
+      } else {
+        alert('حدث خطأ أثناء معالجة الطلب');
+      }
+    } catch (error) {
+      console.error('Error processing book:', error);
+      alert('حدث خطأ أثناء معالجة الطلب');
+    }
+  };
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-600">إجمالي الكتب</h3>
@@ -648,6 +698,98 @@ function BooksTab({ data }) {
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-600">المشاركة</h3>
           <p className="text-3xl font-bold text-blue-600 mt-2">{data.shared.toLocaleString()}</p>
+        </div>
+      </div>
+      
+      {/* Pending Books Section */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-yellow-500" />
+              الكتب في انتظار الموافقة ({pendingBooks.length})
+            </h3>
+            <button
+              onClick={fetchPendingBooks}
+              className="flex items-center gap-2 px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+            >
+              <RefreshCw className="w-4 h-4" />
+              تحديث
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            </div>
+          ) : pendingBooks.length === 0 ? (
+            <div className="text-center py-8">
+              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">لا توجد كتب في انتظار الموافقة</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingBooks.map((book) => (
+                <div key={book.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                  <div className="flex items-start gap-4">
+                    {/* Book Cover */}
+                    {book.cover_image_url && (
+                      <img 
+                        src={book.cover_image_url.startsWith('http') ? book.cover_image_url : `${window.location.origin}${book.cover_image_url}`}
+                        alt={book.title_ar || book.title}
+                        className="w-20 h-28 object-cover rounded shadow"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                    )}
+                    
+                    {/* Book Details */}
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                        {book.title_ar || book.title}
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>المؤلف:</strong> {book.author_ar || book.author}
+                      </p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>المكتبة:</strong> {book.bookstore?.name_arabic || book.bookstore?.name}
+                      </p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>التصنيف:</strong> {book.category?.name_ar || book.category?.name || 'غير محدد'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>السعر:</strong> {book.price?.toLocaleString()} د.ع
+                      </p>
+                      {book.description_ar && (
+                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+                          {book.description_ar}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleBookApproval(book.id, 'approve')}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <Check className="w-4 h-4" />
+                        قبول
+                      </button>
+                      <button
+                        onClick={() => handleBookApproval(book.id, 'reject')}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        رفض
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

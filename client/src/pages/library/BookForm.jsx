@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Upload, X, Save, AlertCircle, ArrowRight } from 'lucide-react';
+import { Upload, X, Save, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import toast from 'react-hot-toast';
 
 function BookForm() {
   const navigate = useNavigate();
@@ -194,12 +195,18 @@ function BookForm() {
         throw new Error(result.error || 'حدث خطأ');
       }
       
-      // Success - redirect to books list
-      navigate(`/library/${bookstoreId}/books`, {
-        state: { 
-          message: isEditing ? 'تم تحديث الكتاب بنجاح' : 'تم إضافة الكتاب بنجاح' 
-        }
-      });
+      // Success - show toast and redirect to dashboard
+      if (isEditing) {
+        toast.success('تم تحديث الكتاب بنجاح! ✅');
+      } else {
+        toast.success(
+          'تم إضافة الكتاب بنجاح! 🎉\nالكتاب الآن قيد المراجعة من قبل الإدارة',
+          { duration: 5000 }
+        );
+      }
+      
+      // Redirect to dashboard
+      navigate(`/library/${bookstoreId}/dashboard`);
       
     } catch (error) {
       console.error('Error saving book:', error);
@@ -232,11 +239,11 @@ function BookForm() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => navigate(`/library/${bookstoreId}/books`)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          onClick={() => navigate(`/library/${bookstoreId}/dashboard`)}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
           <ArrowRight className="h-4 w-4" />
-          العودة إلى قائمة الكتب
+          العودة إلى لوحة التحكم
         </button>
         <h1 className="text-3xl font-bold text-gray-900">
           {isEditing ? 'تعديل الكتاب' : 'إضافة كتاب جديد'}
@@ -600,7 +607,7 @@ function BookForm() {
         <div className="flex items-center justify-end gap-4 pt-6">
           <button
             type="button"
-            onClick={() => navigate(`/library/${bookstoreId}/books`)}
+            onClick={() => navigate(`/library/${bookstoreId}/dashboard`)}
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
           >
             إلغاء
@@ -626,10 +633,17 @@ function BookForm() {
         
         {/* Info Note */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>ملاحظة:</strong> سيتم مراجعة الكتاب من قبل إدارة الموقع قبل نشره. 
-            عادة ما تستغرق عملية المراجعة 24-48 ساعة. ستتلقى إشعاراً عند الموافقة على الكتاب أو في حالة الحاجة لتعديلات.
-          </p>
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-blue-900 font-semibold mb-1">
+                📝 سيتم إرسال الكتاب إلى الإدارة للمراجعة
+              </p>
+              <p className="text-sm text-blue-800">
+                عادة ما تستغرق عملية المراجعة 24-48 ساعة. ستتلقى إشعاراً عند الموافقة على الكتاب أو في حالة الحاجة لتعديلات.
+              </p>
+            </div>
+          </div>
         </div>
       </form>
     </div>

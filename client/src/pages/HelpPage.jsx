@@ -223,11 +223,11 @@ const HelpPage = () => {
               <span className="text-xs">9 صباحاً - 6 مساءً</span>
             </p>
             <a 
-              href="tel:+9647701234567" 
+              href="tel:+9647723198890" 
               className="block w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors english-text"
               dir="ltr"
             >
-              +964 770 123 4567
+              07723198890
             </a>
           </div>
 
@@ -243,11 +243,11 @@ const HelpPage = () => {
               سنرد عليك خلال 24 ساعة
             </p>
             <a 
-              href="mailto:support@almutanabbi.com" 
+              href="mailto:moham231med@gmail.com" 
               className="block w-full bg-amber-600 text-white py-2 rounded-lg hover:bg-amber-700 transition-colors english-text"
               dir="ltr"
             >
-              support@almutanabbi.com
+              moham231med@gmail.com
             </a>
           </div>
 

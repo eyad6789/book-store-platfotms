@@ -115,12 +115,11 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 rtl:space-x-reverse">
-            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-xl font-bold text-primary-brown">
-              المتنبي
-            </div>
+            <img 
+              src="/logoWhiteBg.png" 
+              alt="المتنبي" 
+              className="h-12 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Navigation */}

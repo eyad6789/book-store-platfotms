@@ -122,32 +122,34 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
   }
   
   return (
-    <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">لوحة تحكم المكتبة</h1>
-          <p className="text-gray-600 mt-1">{stats.bookstore.name}</p>
-          {!stats.bookstore.is_approved && (
-            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
-              في انتظار الموافقة
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8 animate-fade-in" dir="rtl">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="glass p-6 rounded-2xl shadow-soft animate-slide-down">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-primary-brown mb-2">لوحة تحكم المكتبة</h1>
+              <p className="text-gray-600 text-lg">{stats.bookstore.name}</p>
+              {!stats.bookstore.is_approved && (
+                <div className="mt-3 inline-flex items-center px-4 py-2 rounded-full text-sm bg-yellow-100 text-yellow-800 font-medium animate-pulse-slow">
+                  ⏳ في انتظار الموافقة
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div className="flex gap-3">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="7">آخر 7 أيام</option>
-            <option value="30">آخر 30 يوم</option>
-            <option value="90">آخر 3 أشهر</option>
-            <option value="365">السنة الماضية</option>
-          </select>
-          <Link
-            to={`/library/${bookstoreId}/books/add`}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-brown focus:border-transparent transition-all duration-300 bg-white shadow-soft hover:shadow-hover"
+              >
+                <option value="7">آخر 7 أيام</option>
+                <option value="30">آخر 30 يوم</option>
+                <option value="90">آخر 3 أشهر</option>
+                <option value="365">السنة الماضية</option>
+              </select>
+              <Link
+                to={`/library/${bookstoreId}/books/add`}
+                className="px-6 py-3 bg-gradient-primary text-white rounded-lg hover:shadow-glow transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 font-medium shadow-soft"
           >
             <Plus className="h-4 w-4" />
             إضافة كتاب
@@ -155,8 +157,8 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
         </div>
       </div>
       
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Key Metrics Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Total Revenue */}
         <MetricCard
           icon={<DollarSign className="h-8 w-8" />}
@@ -194,9 +196,9 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
         />
       </div>
       
-      {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
+        {/* Secondary Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+          <div className="glass p-6 rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-1 transition-all duration-300 animate-scale-in">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">متوسط قيمة الطلب</p>
@@ -208,10 +210,10 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">معدل التحويل</p>
+          <div className="glass p-6 rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-1 transition-all duration-300 animate-scale-in" style={{ animationDelay: '100ms' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">معدل التحويل</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {stats.conversionRate}%
               </p>
@@ -220,10 +222,10 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">التقييم العام</p>
+          <div className="glass p-6 rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-1 transition-all duration-300 animate-scale-in" style={{ animationDelay: '200ms' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">التقييم العام</p>
               <div className="flex items-center mt-1">
                 <p className="text-2xl font-bold text-gray-900">
                   {stats.avgRating}
@@ -235,11 +237,12 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
               </div>
             </div>
           </div>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Top Performing Books */}
-      <div className="bg-white rounded-lg shadow">
+        
+        {/* Top Performing Books */}
+        <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-up">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">الكتب الأكثر مبيعاً</h2>
         </div>
@@ -282,10 +285,10 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
         </div>
       </div>
       
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow">
+        {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {/* Recent Orders */}
+          <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-in-right">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">الطلبات الأخيرة</h2>
           </div>
@@ -326,8 +329,8 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
           </div>
         </div>
         
-        {/* Shared Books Performance */}
-        <div className="bg-white rounded-lg shadow">
+          {/* Shared Books Performance */}
+          <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-in-left">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Share2 className="h-5 w-5" />
@@ -377,54 +380,55 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
             )}
           </div>
         </div>
-      </div>
-      
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link
-          to={`/library/${bookstoreId}/books/add`}
-          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Plus className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">إضافة كتاب جديد</h3>
-              <p className="text-sm text-gray-600">أضف كتاباً جديداً إلى مكتبتك</p>
-            </div>
-          </div>
-        </Link>
+        </div>
         
-        <Link
-          to={`/library/${bookstoreId}/books`}
-          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-white" />
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+          <Link
+            to={`/library/${bookstoreId}/books/add`}
+            className="glass rounded-xl shadow-soft hover:shadow-hover p-6 transform hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-soft">
+                <Plus className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">إضافة كتاب جديد</h3>
+                <p className="text-sm text-gray-600">أضف كتاباً جديداً إلى مكتبتك</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">إدارة الكتب</h3>
-              <p className="text-sm text-gray-600">عرض وتعديل كتبك</p>
+          </Link>
+          
+          <Link
+            to={`/library/${bookstoreId}/books`}
+            className="glass rounded-xl shadow-soft hover:shadow-hover p-6 transform hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-soft">
+                <BookOpen className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">إدارة الكتب</h3>
+                <p className="text-sm text-gray-600">عرض وتعديل كتبك</p>
+              </div>
             </div>
-          </div>
-        </Link>
-        
-        <Link
-          to={`/library/${bookstoreId}/analytics`}
-          className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-white" />
+          </Link>
+          
+          <Link
+            to={`/library/${bookstoreId}/analytics`}
+            className="glass rounded-xl shadow-soft hover:shadow-hover p-6 transform hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-soft">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">التحليلات المتقدمة</h3>
+                <p className="text-sm text-gray-600">تقارير مفصلة عن الأداء</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">التحليلات المتقدمة</h3>
-              <p className="text-sm text-gray-600">تقارير مفصلة عن الأداء</p>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -433,31 +437,31 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
 // Metric Card Component
 function MetricCard({ icon, title, value, change, subtitle, color = 'blue' }) {
   const colorClasses = {
-    green: 'text-green-600 bg-green-50',
-    blue: 'text-blue-600 bg-blue-50',
-    purple: 'text-purple-600 bg-purple-50',
-    orange: 'text-orange-600 bg-orange-50'
+    green: 'text-green-600 bg-gradient-to-br from-green-50 to-green-100',
+    blue: 'text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100',
+    purple: 'text-purple-600 bg-gradient-to-br from-purple-50 to-purple-100',
+    orange: 'text-orange-600 bg-gradient-to-br from-orange-50 to-orange-100'
   };
   
   return (
-    <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+    <div className="glass p-6 rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-1 transition-all duration-300 animate-scale-in">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
+          <p className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">{value}</p>
           {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-sm text-gray-500">{subtitle}</p>
           )}
           {change !== undefined && (
-            <p className={`text-sm mt-2 flex items-center gap-1 ${
-              change >= 0 ? 'text-green-600' : 'text-red-600'
+            <div className={`inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full text-xs font-medium ${
+              change >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}>
-              <TrendingUp className={`h-4 w-4 ${change < 0 ? 'rotate-180' : ''}`} />
-              {Math.abs(change)}% من الفترة السابقة
-            </p>
+              <TrendingUp className={`h-3 w-3 ${change < 0 ? 'rotate-180' : ''}`} />
+              {Math.abs(change)}%
+            </div>
           )}
         </div>
-        <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+        <div className={`p-4 rounded-xl shadow-soft ${colorClasses[color]}`}>
           {icon}
         </div>
       </div>

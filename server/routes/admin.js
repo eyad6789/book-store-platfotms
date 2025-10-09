@@ -219,6 +219,159 @@ router.put('/bookstores/:id/reject', async (req, res) => {
   }
 });
 
+// @route   GET /api/admin/books/pending
+// @desc    Get pending books for approval
+// @access  Private (Admin only)
+router.get('/books/pending', async (req, res) => {
+  try {
+    const pendingBooks = await LibraryBook.findAll({
+      where: { status: 'pending' },
+      include: [
+        {
+          model: Bookstore,
+          as: 'bookstore',
+          attributes: ['id', 'name', 'name_arabic'],
+          include: [{
+            model: User,
+            as: 'owner',
+            attributes: ['id', 'full_name', 'email']
+          }]
+        },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'name_ar']
+        }
+      ],
+      order: [['created_at', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      books: pendingBooks,
+      count: pendingBooks.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending books:', error);
+    res.status(500).json({
+      error: 'Failed to fetch pending books',
+      message: 'حدث خطأ في تحميل الكتب المعلقة'
+    });
+  }
+});
+
+// @route   PUT /api/admin/books/:id/approve
+// @desc    Approve a library book
+// @access  Private (Admin only)
+router.put('/books/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const book = await LibraryBook.findByPk(id, {
+      include: [{
+        model: Bookstore,
+        as: 'bookstore'
+      }]
+    });
+
+    if (!book) {
+      return res.status(404).json({
+        error: 'Book not found',
+        message: 'الكتاب غير موجود'
+      });
+    }
+
+    await book.update({
+      status: 'approved',
+      approved_by: req.user.id,
+      approved_at: new Date()
+    });
+
+    // Log the approval activity (temporarily disabled)
+    // await UserActivity.create({
+    //   user_id: req.user.id,
+    //   activity_type: 'book_approved',
+    //   entity_type: 'library_book',
+    //   entity_id: book.id,
+    //   metadata: {
+    //     book_id: book.id,
+    //     book_title: book.title_ar || book.title,
+    //     bookstore_id: book.bookstore_id,
+    //     admin_id: req.user.id
+    //   }
+    // });
+
+    res.json({
+      success: true,
+      message: 'تم الموافقة على الكتاب بنجاح',
+      book: book
+    });
+
+  } catch (error) {
+    console.error('Error approving book:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      error: 'Failed to approve book',
+      message: 'حدث خطأ في الموافقة على الكتاب',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   PUT /api/admin/books/:id/reject
+// @desc    Reject a library book
+// @access  Private (Admin only)
+router.put('/books/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const book = await LibraryBook.findByPk(id);
+    if (!book) {
+      return res.status(404).json({
+        error: 'Book not found',
+        message: 'الكتاب غير موجود'
+      });
+    }
+
+    await book.update({
+      status: 'rejected',
+      rejection_reason: reason || 'لم يتم تحديد سبب الرفض',
+      approved_by: req.user.id,
+      approved_at: new Date()
+    });
+
+    // Log the rejection activity (temporarily disabled)
+    // await UserActivity.create({
+    //   user_id: req.user.id,
+    //   activity_type: 'book_rejected',
+    //   entity_type: 'library_book',
+    //   entity_id: book.id,
+    //   metadata: {
+    //     book_id: book.id,
+    //     book_title: book.title_ar || book.title,
+    //     rejection_reason: reason,
+    //     admin_id: req.user.id
+    //   }
+    // });
+
+    res.json({
+      success: true,
+      message: 'تم رفض الكتاب',
+      book: book
+    });
+
+  } catch (error) {
+    console.error('Error rejecting book:', error);
+    res.status(500).json({
+      error: 'Failed to reject book',
+      message: 'حدث خطأ في رفض الكتاب'
+    });
+  }
+});
+
 // @route   GET /api/admin/users
 // @desc    Get all users with pagination
 // @access  Private (Admin only)

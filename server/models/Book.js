@@ -75,13 +75,7 @@ const Book = sequelize.define('Book', {
       min: 0
     }
   },
-  stock_quantity: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    validate: {
-      min: 0
-    }
-  },
+  // Removed stock_quantity - all books are always available
   image_url: {
     type: DataTypes.STRING(500),
     allowNull: true

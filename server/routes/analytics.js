@@ -1,7 +1,7 @@
 const express = require('express');
 const { Op, fn, col, literal, QueryTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const { Book, Bookstore, User, Order, OrderItem, BookReview, SearchQuery } = require('../models');
+const { Book, LibraryBook, Bookstore, User, Order, OrderItem, BookReview, SearchQuery } = require('../models');
 const { authenticateToken, requireBookstoreOwner } = require('../middleware/auth');
 
 const router = express.Router();
@@ -385,6 +385,241 @@ router.get('/books/performance', authenticateToken, requireBookstoreOwner, async
     res.status(500).json({ 
       success: false,
       error: 'حدث خطأ في جلب أداء الكتب' 
+    });
+  }
+});
+
+// @route   GET /api/analytics/library/:bookstoreId
+// @desc    Get comprehensive library analytics with real data
+// @access  Private (Bookstore owners only)
+router.get('/library/:bookstoreId', authenticateToken, async (req, res) => {
+  try {
+    const { bookstoreId } = req.params;
+    const { days = 30 } = req.query;
+    
+    // Verify bookstore ownership
+    const bookstore = await Bookstore.findOne({
+      where: { 
+        id: bookstoreId,
+        owner_id: req.user.id 
+      }
+    });
+    
+    if (!bookstore) {
+      return res.status(404).json({
+        success: false,
+        error: 'المكتبة غير موجودة أو ليس لديك صلاحية للوصول إليها'
+      });
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+
+    // 1. Overview Metrics
+    const totalBooks = await LibraryBook.count({
+      where: { bookstore_id: bookstoreId }
+    });
+
+    // Total orders and revenue for library books
+    const orderStats = await sequelize.query(`
+      SELECT 
+        COUNT(DISTINCT o.id) as totalOrders,
+        SUM(o.total_amount) as totalRevenue,
+        COUNT(DISTINCT o.customer_id) as uniqueCustomers
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN library_books lb ON oi.book_id = lb.id
+      WHERE lb.bookstore_id = :bookstoreId 
+        AND o.created_at >= :startDate
+        AND o.status IN ('confirmed', 'processing', 'shipped', 'delivered')
+    `, {
+      replacements: { bookstoreId, startDate },
+      type: QueryTypes.SELECT
+    });
+
+    // Previous period for growth calculation
+    const previousStartDate = new Date(startDate);
+    previousStartDate.setDate(previousStartDate.getDate() - parseInt(days));
+    
+    const previousOrderStats = await sequelize.query(`
+      SELECT SUM(o.total_amount) as previousRevenue
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN library_books lb ON oi.book_id = lb.id
+      WHERE lb.bookstore_id = :bookstoreId 
+        AND o.created_at >= :previousStartDate
+        AND o.created_at < :startDate
+        AND o.status IN ('confirmed', 'processing', 'shipped', 'delivered')
+    `, {
+      replacements: { bookstoreId, previousStartDate, startDate },
+      type: QueryTypes.SELECT
+    });
+
+    const currentRevenue = parseFloat(orderStats[0]?.totalRevenue || 0);
+    const previousRevenue = parseFloat(previousOrderStats[0]?.previousRevenue || 0);
+    const growthRate = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+
+    // 2. Top performing books
+    const topBooks = await sequelize.query(`
+      SELECT 
+        lb.id,
+        lb.title_arabic,
+        lb.title,
+        lb.author_arabic,
+        lb.author,
+        COUNT(oi.id) as sales,
+        SUM(oi.quantity * oi.price) as revenue,
+        COUNT(DISTINCT o.customer_id) as uniqueCustomers
+      FROM library_books lb
+      LEFT JOIN order_items oi ON lb.id = oi.book_id
+      LEFT JOIN orders o ON oi.order_id = o.id 
+        AND o.status IN ('confirmed', 'processing', 'shipped', 'delivered')
+        AND o.created_at >= :startDate
+      WHERE lb.bookstore_id = :bookstoreId
+      GROUP BY lb.id, lb.title_arabic, lb.title, lb.author_arabic, lb.author
+      ORDER BY revenue DESC, sales DESC
+      LIMIT 10
+    `, {
+      replacements: { bookstoreId, startDate },
+      type: QueryTypes.SELECT
+    });
+
+    // 3. Monthly revenue trend
+    const monthlyRevenue = await sequelize.query(`
+      SELECT 
+        DATE_FORMAT(o.created_at, '%Y-%m') as month,
+        MONTHNAME(o.created_at) as monthName,
+        SUM(o.total_amount) as revenue
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN library_books lb ON oi.book_id = lb.id
+      WHERE lb.bookstore_id = :bookstoreId 
+        AND o.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+        AND o.status IN ('confirmed', 'processing', 'shipped', 'delivered')
+      GROUP BY DATE_FORMAT(o.created_at, '%Y-%m'), MONTHNAME(o.created_at)
+      ORDER BY month DESC
+      LIMIT 12
+    `, {
+      replacements: { bookstoreId },
+      type: QueryTypes.SELECT
+    });
+
+    // 4. Category performance
+    const categoryPerformance = await sequelize.query(`
+      SELECT 
+        COALESCE(lb.category, 'غير محدد') as category,
+        COUNT(lb.id) as bookCount,
+        COUNT(oi.id) as sales,
+        SUM(oi.quantity * oi.price) as revenue
+      FROM library_books lb
+      LEFT JOIN order_items oi ON lb.id = oi.book_id
+      LEFT JOIN orders o ON oi.order_id = o.id 
+        AND o.status IN ('confirmed', 'processing', 'shipped', 'delivered')
+        AND o.created_at >= :startDate
+      WHERE lb.bookstore_id = :bookstoreId
+      GROUP BY lb.category
+      ORDER BY revenue DESC, sales DESC
+    `, {
+      replacements: { bookstoreId, startDate },
+      type: QueryTypes.SELECT
+    });
+
+    // 5. Book status distribution
+    const statusDistribution = await LibraryBook.findAll({
+      where: { bookstore_id: bookstoreId },
+      attributes: [
+        'availability_status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['availability_status'],
+      raw: true
+    });
+
+    // 6. Average rating
+    const avgRating = await sequelize.query(`
+      SELECT AVG(br.rating) as averageRating
+      FROM book_reviews br
+      JOIN library_books lb ON br.book_id = lb.id
+      WHERE lb.bookstore_id = :bookstoreId
+    `, {
+      replacements: { bookstoreId },
+      type: QueryTypes.SELECT
+    });
+
+    // Format response data
+    const overview = {
+      totalBooks,
+      totalOrders: parseInt(orderStats[0]?.totalOrders || 0),
+      totalRevenue: currentRevenue,
+      totalCustomers: parseInt(orderStats[0]?.uniqueCustomers || 0),
+      growthRate: parseFloat(growthRate.toFixed(1)),
+      averageRating: parseFloat(avgRating[0]?.averageRating || 0).toFixed(1),
+      conversionRate: orderStats[0]?.uniqueCustomers > 0 ? 
+        ((parseInt(orderStats[0]?.totalOrders || 0) / parseInt(orderStats[0]?.uniqueCustomers || 1)) * 100).toFixed(1) : 0
+    };
+
+    const performance = {
+      topBooks: topBooks.map(book => ({
+        id: book.id,
+        title: book.title_arabic || book.title,
+        author: book.author_arabic || book.author,
+        sales: parseInt(book.sales || 0),
+        revenue: parseFloat(book.revenue || 0),
+        uniqueCustomers: parseInt(book.uniqueCustomers || 0)
+      })),
+      monthlyRevenue: monthlyRevenue.map(item => ({
+        month: item.month,
+        monthName: item.monthName,
+        revenue: parseFloat(item.revenue || 0)
+      })),
+      categoryPerformance: categoryPerformance.map(cat => ({
+        category: cat.category,
+        bookCount: parseInt(cat.bookCount || 0),
+        sales: parseInt(cat.sales || 0),
+        revenue: parseFloat(cat.revenue || 0)
+      }))
+    };
+
+    const books = {
+      statusDistribution: statusDistribution.map(item => ({
+        status: item.availability_status,
+        count: parseInt(item.count)
+      })),
+      totalBooks
+    };
+
+    const customers = {
+      totalActive: parseInt(orderStats[0]?.uniqueCustomers || 0),
+      newCustomers: parseInt(orderStats[0]?.uniqueCustomers || 0), // Simplified for now
+      repeatCustomers: 0 // Can be calculated with more complex query
+    };
+
+    res.json({
+      success: true,
+      data: {
+        overview,
+        performance,
+        books,
+        customers,
+        dateRange: {
+          startDate,
+          endDate: new Date(),
+          days: parseInt(days)
+        }
+      },
+      bookstore: {
+        id: bookstore.id,
+        name: bookstore.name,
+        name_arabic: bookstore.name_arabic
+      }
+    });
+
+  } catch (error) {
+    console.error('Library analytics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'حدث خطأ في تحميل التحليلات',
+      details: error.message
     });
   }
 });

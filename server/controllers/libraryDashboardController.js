@@ -8,7 +8,8 @@ const {
   Order,
   OrderItem,
   User,
-  Category
+  Category,
+  LibraryReview
 } = require('../models');
 
 // @route   GET /api/library/:bookstoreId/dashboard
@@ -163,6 +164,22 @@ const getLibraryDashboard = async (req, res) => {
       bookStatusDistribution = [];
     }
     
+    // Get library rating data
+    let libraryRatingData = { rating: 0, total_reviews: 0 };
+    try {
+      const libraryRating = await Bookstore.findByPk(bookstoreId, {
+        attributes: ['rating', 'total_reviews']
+      });
+      if (libraryRating) {
+        libraryRatingData = {
+          rating: parseFloat(libraryRating.rating) || 0,
+          total_reviews: libraryRating.total_reviews || 0
+        };
+      }
+    } catch (error) {
+      console.error('Error loading library rating:', error);
+    }
+
     const dashboardData = {
       bookstore: {
         id: bookstore.id,
@@ -181,6 +198,8 @@ const getLibraryDashboard = async (req, res) => {
       conversionRate: currentMetrics.conversionRate,
       avgRating: currentMetrics.avgRating || 0,
       totalReviews: currentMetrics.totalReviews || 0,
+      libraryRating: libraryRatingData.rating,
+      libraryReviews: libraryRatingData.total_reviews,
       topBooks,
       recentOrders: recentOrders.map(order => ({
         id: order.id,

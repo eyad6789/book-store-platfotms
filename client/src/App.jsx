@@ -1,5 +1,6 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { useEffect } from 'react'
 
 // Layout components
 import Navbar from './components/layout/Navbar'
@@ -31,28 +32,28 @@ import ProfilePage from './pages/ProfilePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 
-// Bookstore owner pages
-import BookstoreDashboard from './pages/bookstore/BookstoreDashboard'
-import BookstoreRegister from './pages/bookstore/BookstoreRegister'
-import ManageBooksPage from './pages/bookstore/ManageBooksPage'
-import AddBookPage from './pages/bookstore/AddBookPage'
-import EditBookPage from './pages/bookstore/EditBookPage'
-
-// Library management pages
+// Library management pages (consolidated)
 import LibraryDashboardWrapper from './pages/library/LibraryDashboardWrapper'
 import BookForm from './pages/library/BookForm'
-import TestPage from './pages/TestPage'
+import ManageBooksPage from './pages/bookstore/ManageBooksPage'
+import AdvancedAnalytics from './pages/library/AdvancedAnalytics'
 
 // Admin pages
-import AdminDashboard from './pages/admin/AdminDashboard'
 import EnhancedAdminDashboard from './pages/admin/EnhancedAdminDashboard'
 
 // Components
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import TestRatingPage from './pages/TestRatingPage'
 
 function App() {
   const { loading } = useAuth()
+  const location = useLocation()
+
+  // Reset scroll position on route change
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   if (loading) {
     return (
@@ -65,7 +66,7 @@ function App() {
   return (
     <div className="min-h-screen bg-primary-cream flex flex-col">
       <Navbar />
-      
+
       <main className="flex-1">
         <Routes>
           {/* Public routes */}
@@ -76,13 +77,13 @@ function App() {
           <Route path="/bookstores/:id" element={<BookstoreDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          
+
           {/* Auth routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-          
+
           {/* Legal and service pages */}
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
@@ -90,7 +91,8 @@ function App() {
           <Route path="/shipping" element={<ShippingPage />} />
           <Route path="/returns" element={<ReturnsPage />} />
           <Route path="/sitemap" element={<SitemapPage />} />
-          
+          <Route path="/test-rating" element={<TestRatingPage />} />
+
           {/* Protected customer routes */}
           <Route path="/profile" element={
             <ProtectedRoute>
@@ -107,39 +109,16 @@ function App() {
               <OrderDetailPage />
             </ProtectedRoute>
           } />
-          
-          {/* Bookstore owner routes */}
-          <Route path="/bookstore/register" element={
-            <ProtectedRoute requiredRole="bookstore_owner">
-              <BookstoreRegister />
-            </ProtectedRoute>
-          } />
-          <Route path="/bookstore/dashboard" element={
-            <ProtectedRoute requiredRole="bookstore_owner">
-              <BookstoreDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/bookstore/books" element={
-            <ProtectedRoute requiredRole="bookstore_owner">
-              <ManageBooksPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/bookstore/books/add" element={
-            <ProtectedRoute requiredRole="bookstore_owner">
-              <AddBookPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/bookstore/books/:id/edit" element={
-            <ProtectedRoute requiredRole="bookstore_owner">
-              <EditBookPage />
-            </ProtectedRoute>
-          } />
-          
+
           {/* Library management routes */}
-          <Route path="/test/:bookstoreId" element={<TestPage />} />
           <Route path="/library/:bookstoreId/dashboard" element={
             <ProtectedRoute requiredRole="bookstore_owner">
               <LibraryDashboardWrapper />
+            </ProtectedRoute>
+          } />
+          <Route path="/library/:bookstoreId/books" element={
+            <ProtectedRoute requiredRole="bookstore_owner">
+              <ManageBooksPage />
             </ProtectedRoute>
           } />
           <Route path="/library/:bookstoreId/books/add" element={
@@ -152,19 +131,19 @@ function App() {
               <BookForm />
             </ProtectedRoute>
           } />
-          
+          <Route path="/library/:bookstoreId/analytics" element={
+            <ProtectedRoute requiredRole="bookstore_owner">
+              <AdvancedAnalytics />
+            </ProtectedRoute>
+          } />
+
           {/* Admin routes */}
           <Route path="/admin" element={
             <ProtectedRoute requiredRole="admin">
               <EnhancedAdminDashboard />
             </ProtectedRoute>
           } />
-          <Route path="/admin/legacy" element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          
+
           {/* 404 page */}
           <Route path="*" element={
             <div className="min-h-screen flex items-center justify-center">
@@ -179,7 +158,7 @@ function App() {
           } />
         </Routes>
       </main>
-      
+
       <Footer />
     </div>
   )

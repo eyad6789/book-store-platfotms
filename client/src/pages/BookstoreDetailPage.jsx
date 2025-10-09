@@ -5,6 +5,7 @@ import { bookstoresAPI } from '../utils/api'
 import { getImageUrl } from '../utils/helpers'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import BookCard from '../components/books/BookCard'
+import LibraryRating from '../components/ratings/LibraryRating'
 
 const BookstoreDetailPage = () => {
   const { id } = useParams()
@@ -164,6 +165,14 @@ const BookstoreDetailPage = () => {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Rating and Reviews Section */}
+        <div className="mt-12">
+          <LibraryRating 
+            bookstoreId={id} 
+            showReviews={true}
+          />
         </div>
       </div>
     </div>

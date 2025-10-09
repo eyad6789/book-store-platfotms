@@ -639,4 +639,83 @@ router.put('/admin/:id/approve', authenticateToken, requireRole('admin'), async 
   }
 });
 
+// @route   PUT /api/bookstore/books/:id/status
+// @desc    Update book availability status
+// @access  Private (Bookstore owner only)
+router.put('/books/:id/status', authenticateToken, requireRole('bookstore_owner'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active, availability_status } = req.body;
+    
+    const book = await Book.findOne({
+      where: { 
+        id: id,
+        bookstore_id: req.user.bookstore_id
+      }
+    });
+    
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        error: 'الكتاب غير موجود'
+      });
+    }
+    
+    await book.update({ 
+      is_active: is_active !== undefined ? is_active : book.is_active,
+      availability_status: availability_status || 'active'
+    });
+    
+    res.json({
+      success: true,
+      message: 'تم تحديث حالة الكتاب بنجاح',
+      book: book
+    });
+    
+  } catch (error) {
+    console.error('Update book status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'حدث خطأ في تحديث حالة الكتاب'
+    });
+  }
+});
+
+// @route   DELETE /api/bookstore/books/:id
+// @desc    Delete a book
+// @access  Private (Bookstore owner only)
+router.delete('/books/:id', authenticateToken, requireRole('bookstore_owner'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const book = await Book.findOne({
+      where: { 
+        id: id,
+        bookstore_id: req.user.bookstore_id
+      }
+    });
+    
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        error: 'الكتاب غير موجود'
+      });
+    }
+    
+    await book.destroy();
+    
+    res.json({
+      success: true,
+      message: 'تم حذف الكتاب بنجاح'
+    });
+    
+  } catch (error) {
+    console.error('Delete book error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'حدث خطأ في حذف الكتاب'
+    });
+  }
+});
+
 module.exports = router;

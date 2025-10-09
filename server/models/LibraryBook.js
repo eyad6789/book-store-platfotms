@@ -97,11 +97,11 @@ const LibraryBook = sequelize.define('LibraryBook', {
       min: 0
     }
   },
-  stock_quantity: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
+  availability_status: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'available',
     validate: {
-      min: 0
+      isIn: [['available', 'unavailable', 'coming_soon']]
     }
   },
   cover_image_url: {

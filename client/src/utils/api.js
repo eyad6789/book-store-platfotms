@@ -85,6 +85,10 @@ export const booksAPI = {
   uploadBookImage: (id, formData) => api.post(`/books/${id}/upload-image`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  // Library books endpoints
+  getLibraryBooks: (params) => api.get('/books/library', { params }),
+  getLibraryBook: (id) => api.get(`/books/library/${id}`),
+  searchBooks: (params) => api.get('/books/search', { params }),
 }
 
 // Bookstores API
@@ -100,8 +104,9 @@ export const bookstoresAPI = {
   }),
   getMyBooks: (params) => api.get('/bookstores/my-bookstore/books', { params }),
   // Admin endpoints
-  getPendingBookstores: () => api.get('/bookstores/admin/pending'),
-  approveBookstore: (id) => api.put(`/bookstores/admin/${id}/approve`),
+  getPendingBookstores: () => api.get('/admin/bookstores/pending'),
+  approveBookstore: (id) => api.put(`/admin/bookstores/${id}/approve`),
+  rejectBookstore: (id, reason) => api.put(`/admin/bookstores/${id}/reject`, { reason }),
 }
 
 // Orders API
@@ -114,6 +119,28 @@ export const ordersAPI = {
   // Admin endpoints
   getAllOrders: (params) => api.get('/orders/admin/all', { params }),
   updateOrderStatus: (id, statusData) => api.put(`/orders/admin/${id}/status`, statusData),
+}
+
+// Admin API
+export const adminAPI = {
+  // Dashboard
+  getDashboard: (params) => api.get('/admin/dashboard', { params }),
+  
+  // Books management
+  getPendingBooks: () => api.get('/admin/books/pending'),
+  approveBook: (id) => api.put(`/admin/books/${id}/approve`),
+  rejectBook: (id, reason) => api.put(`/admin/books/${id}/reject`, { reason }),
+  
+  // Bookstores management
+  getPendingBookstores: () => api.get('/admin/bookstores/pending'),
+  approveBookstore: (id) => api.put(`/admin/bookstores/${id}/approve`),
+  rejectBookstore: (id, reason) => api.put(`/admin/bookstores/${id}/reject`, { reason }),
+  
+  // Users management
+  getUsers: (params) => api.get('/admin/users', { params }),
+  
+  // Reports
+  exportReport: (type, params) => api.get('/admin/reports/export', { params: { type, ...params } }),
 }
 
 // Utility functions

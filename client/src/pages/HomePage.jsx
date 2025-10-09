@@ -16,6 +16,8 @@ import BookCard from '../components/books/BookCard'
 
 const HomePage = () => {
   const [featuredBooks, setFeaturedBooks] = useState([])
+  const [recommendedBooks, setRecommendedBooks] = useState([])
+  const [libraryBooks, setLibraryBooks] = useState([])
   const [bookstores, setBookstores] = useState([])
   const [stats, setStats] = useState({
     totalBooks: 0,
@@ -23,25 +25,35 @@ const HomePage = () => {
     totalCustomers: 0
   })
   const [loading, setLoading] = useState(true)
+  const [recommendationLoading, setRecommendationLoading] = useState(false)
 
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
         setLoading(true)
         
-        // Fetch featured books
-        const featuredResponse = await booksAPI.getFeaturedBooks({ limit: 8 })
-        setFeaturedBooks(featuredResponse.data.books || [])
+        // Fetch data from multiple sources simultaneously
+        const [featuredResponse, libraryResponse, bookstoresResponse, regularResponse] = await Promise.all([
+          booksAPI.getFeaturedBooks({ limit: 6 }),
+          booksAPI.getLibraryBooks({ limit: 6 }),
+          bookstoresAPI.getBookstores({ limit: 6 }),
+          booksAPI.getBooks({ limit: 12, include_library: false })
+        ])
         
-        // Fetch bookstores
-        const bookstoresResponse = await bookstoresAPI.getBookstores({ limit: 6 })
+        setFeaturedBooks(featuredResponse.data.books || [])
+        setLibraryBooks(libraryResponse.data.books || [])
         setBookstores(bookstoresResponse.data.bookstores || [])
         
-        // Mock stats for now (in real app, would come from API)
+        // Generate smart recommendations
+        generateSmartRecommendations(regularResponse.data.books || [], libraryResponse.data.books || [])
+        
+        // Calculate real stats
+        const totalRegular = regularResponse.data.pagination?.totalItems || 0
+        const totalLibrary = libraryResponse.data.pagination?.totalItems || 0
         setStats({
-          totalBooks: 1250,
-          totalBookstores: 45,
-          totalCustomers: 3200
+          totalBooks: totalRegular + totalLibrary,
+          totalBookstores: bookstoresResponse.data.pagination?.totalItems || 0,
+          totalCustomers: 3200 // Mock for now
         })
         
       } catch (error) {
@@ -53,6 +65,75 @@ const HomePage = () => {
 
     fetchHomeData()
   }, [])
+
+  // Smart recommendation algorithm
+  const generateSmartRecommendations = (regularBooks, libraryBooks) => {
+    const allBooks = [...regularBooks, ...libraryBooks.map(book => ({
+      ...book,
+      id: `library-${book.id}`, // Make library book IDs unique
+      source: 'library',
+      title_arabic: book.title_ar || book.title,
+      author_arabic: book.author_ar || book.author,
+      image_url: book.cover_image_url
+    }))]
+    
+    // Smart recommendation criteria
+    const recommendations = []
+    const categories = ['أدب', 'تاريخ', 'فلسفة', 'علوم', 'تكنولوجيا', 'شعر']
+    const now = new Date()
+    
+    // Seed random number generator with current time for different results each refresh
+    const seed = now.getHours() * 60 + now.getMinutes()
+    Math.seedrandom = function(s) {
+      var m = 0x80000000, a = 1103515245, c = 12345, state = s ? s : Math.floor(Math.random() * (m - 1))
+      return function() {
+        state = (a * state + c) % m
+        return state / (m - 1)
+      }
+    }
+    const seededRandom = Math.seedrandom(seed)
+    
+    // Algorithm: Mix popular, recent, and random books
+    const shuffledBooks = allBooks.sort(() => seededRandom() - 0.5)
+    
+    // Get diverse recommendations
+    categories.forEach(category => {
+      const categoryBooks = shuffledBooks.filter(book => 
+        book.category?.includes(category) || 
+        book.title_arabic?.includes(category) ||
+        book.description_arabic?.includes(category)
+      )
+      if (categoryBooks.length > 0) {
+        recommendations.push(categoryBooks[0])
+      }
+    })
+    
+    // Fill remaining slots with random books
+    const remaining = shuffledBooks.filter(book => !recommendations.includes(book))
+    while (recommendations.length < 6 && remaining.length > 0) {
+      const randomIndex = Math.floor(seededRandom() * remaining.length)
+      recommendations.push(remaining.splice(randomIndex, 1)[0])
+    }
+    
+    setRecommendedBooks(recommendations.slice(0, 6))
+  }
+
+  // Refresh recommendations
+  const refreshRecommendations = async () => {
+    setRecommendationLoading(true)
+    try {
+      const [regularResponse, libraryResponse] = await Promise.all([
+        booksAPI.getBooks({ limit: 20, include_library: false }),
+        booksAPI.getLibraryBooks({ limit: 20 })
+      ])
+      
+      generateSmartRecommendations(regularResponse.data.books || [], libraryResponse.data.books || [])
+    } catch (error) {
+      console.error('Error refreshing recommendations:', error)
+    } finally {
+      setRecommendationLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -161,6 +242,105 @@ const HomePage = () => {
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">لا توجد كتب مميزة حالياً</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Smart Recommendations Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl font-bold text-primary-dark mb-2">
+                🎯 مقترحات ذكية لك
+              </h2>
+              <p className="text-gray-600">
+                كتب مختارة خصيصاً بناءً على خوارزمية ذكية تتغير مع كل تحديث
+              </p>
+            </div>
+            <button 
+              onClick={refreshRecommendations}
+              disabled={recommendationLoading}
+              className="flex items-center bg-primary-brown text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors font-medium disabled:opacity-50"
+            >
+              {recommendationLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  جاري التحديث...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  اقتراحات جديدة
+                </>
+              )}
+            </button>
+          </div>
+
+          {recommendedBooks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {recommendedBooks.map((book, index) => (
+                <div key={`${book.id}-${index}`} className="relative">
+                  <BookCard book={book} />
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                    #{index + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">جاري تحضير اقتراحات ذكية لك...</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Library Books Section */}
+      <section className="py-16 bg-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl font-bold text-primary-dark mb-2">
+                📚 كتب المكتبات المشاركة
+              </h2>
+              <p className="text-gray-600">
+                كتب حصرية من مكتبات شريكة معتمدة
+              </p>
+            </div>
+            <Link 
+              to="/books?include_library=true" 
+              className="flex items-center text-blue-600 hover:text-blue-800 transition-colors font-medium"
+            >
+              عرض جميع كتب المكتبات
+              <ArrowLeft className="w-4 h-4 mr-2 rtl-flip" />
+            </Link>
+          </div>
+
+          {libraryBooks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {libraryBooks.map((book) => (
+                <div key={book.id} className="relative">
+                  <BookCard book={{
+                    ...book,
+                    id: `library-${book.id}`, // Make library book IDs unique
+                    source: 'library',
+                    title_arabic: book.title_ar || book.title,
+                    author_arabic: book.author_ar || book.author,
+                    image_url: book.cover_image_url
+                  }} />
+                  <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg">
+                    مكتبة
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Store className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">لا توجد كتب مكتبات متاحة حالياً</p>
             </div>
           )}
         </div>

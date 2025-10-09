@@ -285,7 +285,7 @@ const CheckoutPage = () => {
                     <div className="flex-1">
                       <div className="font-medium">التحويل البنكي</div>
                       <div className="text-sm text-gray-600">
-                        قريباً - غير متاح حالياً
+                        متاح - خدمة التحويل البنكي
                       </div>
                     </div>
                   </label>

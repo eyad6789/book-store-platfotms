@@ -41,16 +41,16 @@ const ProfilePage = () => {
       formData.append('avatar', file)
 
       const response = await authAPI.uploadAvatar(formData)
-      
+
       // Update local state
       setAvatarUrl(response.data.avatar_url)
-      
+
       // Update user in localStorage
       const updatedUser = response.data.user
       localStorage.setItem('user', JSON.stringify(updatedUser))
-      
+
       toast.success('تم تحديث الصورة الشخصية بنجاح')
-      
+
       // Refresh page to update user context
       window.location.reload()
     } catch (error) {
@@ -80,8 +80,8 @@ const ProfilePage = () => {
               <div className="relative group">
                 <div className="w-20 h-20 bg-primary-brown rounded-full flex items-center justify-center overflow-hidden">
                   {avatarUrl ? (
-                    <img 
-                      src={getImageUrl(avatarUrl)} 
+                    <img
+                      src={getImageUrl(avatarUrl)}
                       alt={user.full_name}
                       className="w-full h-full object-cover"
                     />
@@ -89,9 +89,9 @@ const ProfilePage = () => {
                     <User className="w-10 h-10 text-white" />
                   )}
                 </div>
-                
+
                 {/* Hover Overlay with Camera Icon */}
-                <div 
+                <div
                   onClick={handleAvatarClick}
                   className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 >
@@ -101,7 +101,7 @@ const ProfilePage = () => {
                     <Camera className="w-6 h-6 text-white" />
                   )}
                 </div>
-                
+
                 {/* Hidden File Input */}
                 <input
                   ref={avatarInputRef}
@@ -111,15 +111,15 @@ const ProfilePage = () => {
                   className="hidden"
                 />
               </div>
-              
+
               <div className="flex-1">
                 <h1 className="text-2xl font-bold text-primary-dark">{user.full_name}</h1>
                 <p className="text-gray-600">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    {user.role === 'customer' ? 'عميل' : 
-                     user.role === 'bookstore_owner' ? 'صاحب مكتبة' : 
-                     user.role === 'admin' ? 'مدير' : user.role}
+                    {user.role === 'customer' ? 'عميل' :
+                      user.role === 'bookstore_owner' ? 'صاحب مكتبة' :
+                        user.role === 'admin' ? 'مدير' : user.role}
                   </span>
                   <button
                     onClick={handleAvatarClick}
@@ -138,21 +138,19 @@ const ProfilePage = () => {
             <nav className="flex space-x-8 rtl:space-x-reverse px-6">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'profile'
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
                     ? 'border-primary-brown text-primary-brown'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 المعلومات الشخصية
               </button>
               <button
                 onClick={() => setActiveTab('password')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'password'
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'password'
                     ? 'border-primary-brown text-primary-brown'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 تغيير كلمة المرور
               </button>
@@ -177,7 +175,7 @@ const ProfilePage = () => {
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="form-label">البريد الإلكتروني</label>
                       <div className="relative">
@@ -190,7 +188,7 @@ const ProfilePage = () => {
                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="form-label">رقم الهاتف</label>
                       <div className="relative">
@@ -204,7 +202,7 @@ const ProfilePage = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end">
                     <button type="submit" className="btn-primary">
                       حفظ التغييرات
@@ -229,7 +227,7 @@ const ProfilePage = () => {
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="form-label">كلمة المرور الجديدة</label>
                     <div className="relative">
@@ -241,7 +239,7 @@ const ProfilePage = () => {
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="form-label">تأكيد كلمة المرور الجديدة</label>
                     <div className="relative">
@@ -253,7 +251,7 @@ const ProfilePage = () => {
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     </div>
                   </div>
-                  
+
                   <button type="submit" className="btn-primary w-full">
                     تغيير كلمة المرور
                   </button>

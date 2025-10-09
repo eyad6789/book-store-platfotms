@@ -3,7 +3,7 @@ import {
   Users, BookOpen, Store, TrendingUp, Activity,
   Award, Eye, ShoppingBag, DollarSign, Calendar,
   BarChart3, PieChart, Download, Filter, RefreshCw,
-  Check, X, Clock, MapPin, Phone, Mail
+  Check, X, Clock, MapPin, Phone, Mail, Star, MessageSquare
 } from 'lucide-react';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -141,6 +141,7 @@ function EnhancedAdminDashboard() {
             { id: 'users', label: 'المستخدمين', icon: Users },
             { id: 'libraries', label: 'المكتبات', icon: Store },
             { id: 'books', label: 'الكتب', icon: BookOpen },
+            { id: 'ratings', label: 'التقييمات', icon: Star },
             { id: 'engagement', label: 'التفاعل', icon: Activity }
           ].map(tab => (
             <button
@@ -171,6 +172,9 @@ function EnhancedAdminDashboard() {
       )}
       {activeTab === 'books' && (
         <BooksTab data={dashboardData.books} />
+      )}
+      {activeTab === 'ratings' && (
+        <RatingsTab data={dashboardData.ratings} />
       )}
       {activeTab === 'engagement' && (
         <EngagementTab data={dashboardData.engagement} />
@@ -668,15 +672,27 @@ function BooksTab({ data }) {
         body: action === 'reject' ? JSON.stringify({ reason: 'تم الرفض من قبل الإدارة' }) : undefined
       });
       
+      const result = await response.json();
+      
       if (response.ok) {
+        // Refresh the pending books list
         fetchPendingBooks();
-        alert(`تم ${action === 'approve' ? 'قبول' : 'رفض'} الكتاب بنجاح`);
+        
+        // Show success message with book status
+        const actionText = action === 'approve' ? 'قبول' : 'رفض';
+        const statusText = action === 'approve' ? 'معتمد' : 'مرفوض';
+        alert(`تم ${actionText} الكتاب بنجاح. حالة الكتاب الآن: ${statusText}`);
+        
+        console.log('Book approval result:', result);
       } else {
-        alert('حدث خطأ أثناء معالجة الطلب');
+        // Show specific error message from server
+        const errorMessage = result.message || result.error || 'حدث خطأ أثناء معالجة الطلب';
+        alert(`خطأ: ${errorMessage}`);
+        console.error('Book approval error:', result);
       }
     } catch (error) {
       console.error('Error processing book:', error);
-      alert('حدث خطأ أثناء معالجة الطلب');
+      alert('حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
     }
   };
   
@@ -853,5 +869,198 @@ function AdminMetricCard({ icon, title, value, change, color = 'blue' }) {
     </div>
   );
 }
+
+// Ratings Tab Component
+function RatingsTab({ data }) {
+  const [topRatedLibraries, setTopRatedLibraries] = useState([]);
+  const [ratingStats, setRatingStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchRatingAnalytics();
+  }, []);
+
+  const fetchRatingAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/ratings/analytics', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setRatingStats(result.data.stats);
+        setTopRatedLibraries(result.data.topRatedLibraries || []);
+      }
+    } catch (error) {
+      console.error('Error fetching rating analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6" dir="rtl">
+      {/* Rating Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-600">إجمالي التقييمات</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {ratingStats?.totalRatings?.toLocaleString() || '0'}
+              </p>
+            </div>
+            <MessageSquare className="h-8 w-8 text-blue-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-600">متوسط التقييم العام</h3>
+              <div className="flex items-center mt-2">
+                <p className="text-3xl font-bold text-gray-900">
+                  {ratingStats?.averageRating?.toFixed(1) || '0.0'}
+                </p>
+                <Star className="h-6 w-6 text-yellow-400 mr-2 fill-current" />
+              </div>
+            </div>
+            <Star className="h-8 w-8 text-yellow-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-600">تقييمات المكتبات</h3>
+              <p className="text-3xl font-bold text-purple-600 mt-2">
+                {ratingStats?.libraryRatings?.toLocaleString() || '0'}
+              </p>
+            </div>
+            <Store className="h-8 w-8 text-purple-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-600">تقييمات الكتب</h3>
+              <p className="text-3xl font-bold text-green-600 mt-2">
+                {ratingStats?.bookRatings?.toLocaleString() || '0'}
+              </p>
+            </div>
+            <BookOpen className="h-8 w-8 text-green-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Rating Distribution Chart */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900">توزيع التقييمات</h3>
+        </div>
+        <div className="p-6">
+          <div className="space-y-4">
+            {[5, 4, 3, 2, 1].map(star => (
+              <div key={star} className="flex items-center gap-4">
+                <div className="flex items-center gap-1 w-16">
+                  <span className="text-sm font-medium">{star}</span>
+                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                </div>
+                <div className="flex-1 h-4 bg-gray-200 rounded-full">
+                  <div
+                    className="h-4 bg-yellow-400 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${
+                        ratingStats?.distribution?.[star] 
+                          ? (ratingStats.distribution[star] / (ratingStats.totalRatings || 1)) * 100
+                          : 0
+                      }%`
+                    }}
+                  />
+                </div>
+                <span className="text-sm text-gray-600 w-16 text-left">
+                  {ratingStats?.distribution?.[star]?.toLocaleString() || '0'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Top Rated Libraries */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900">أفضل المكتبات تقييماً</h3>
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="medium" text="جاري تحميل البيانات..." />
+            </div>
+          ) : topRatedLibraries.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Star className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p>لا توجد مكتبات مقيمة بعد</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {topRatedLibraries.map((library, index) => (
+                <div key={library.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0 w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center font-bold">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900">
+                      {library.name_arabic || library.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      المالك: {library.owner?.full_name}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center gap-1">
+                      <span className="text-lg font-bold text-gray-900">
+                        {library.rating?.toFixed(1) || '0.0'}
+                      </span>
+                      <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {library.total_reviews || 0} تقييم
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">الكتب</p>
+                    <p className="font-bold text-gray-900">
+                      {library.total_books || 0}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Reviews */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900">أحدث التقييمات</h3>
+        </div>
+        <div className="p-6">
+          <div className="text-center py-8 text-gray-500">
+            <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p>سيتم عرض أحدث التقييمات هنا</p>
+            <p className="text-sm">قريباً...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default EnhancedAdminDashboard;

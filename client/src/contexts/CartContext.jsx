@@ -237,7 +237,7 @@ export const CartProvider = ({ children }) => {
     
     if (invalidItems.length > 0) {
       invalidItems.forEach(item => {
-        toast.error(`الكمية المطلوبة من "${item.title_arabic || item.title}" غير متوفرة`)
+        toast.success(`تم تحديث كمية "${item.title_arabic || item.title}" - الكتاب متاح`)
         updateQuantity(item.id, item.stock_quantity)
       })
       return false

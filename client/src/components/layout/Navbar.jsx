@@ -50,92 +50,125 @@ const Navbar = () => {
     return location.pathname === path
   }
 
-  // Check if bookstore owner has a registered library
+  // Check for bookstore registration when user is bookstore_owner
   useEffect(() => {
-    const checkBookstore = async () => {
-      // Reset check when user changes
-      if (!user || !isAuthenticated || user.role !== 'bookstore_owner') {
-        setBookstore(null)
-        setHasCheckedBookstore(false)
-        setIsCheckingBookstore(false)
-        return
-      }
-
-      // Only check once unless forced
-      if (hasCheckedBookstore || isCheckingBookstore) {
-        return
-      }
-
-      setIsCheckingBookstore(true)
-
-      try {
+    const checkBookstoreRegistration = async () => {
+      if (user?.role === 'bookstore_owner' && !hasCheckedBookstore && !isCheckingBookstore) {
         console.log('🔍 Checking for bookstore registration for user:', user.id)
-        const response = await bookstoresAPI.getMyBookstore()
+        setIsCheckingBookstore(true)
         
-        if (response.data && response.data.bookstore) {
+        try {
+          const response = await bookstoresAPI.getMyBookstore()
           console.log('✅ Bookstore found:', response.data.bookstore.name, 'ID:', response.data.bookstore.id)
           setBookstore(response.data.bookstore)
-        } else {
-          console.log('⚠️ API returned but no bookstore data')
+        } catch (error) {
+          console.log('❌ No bookstore found or error:', error.response?.status)
           setBookstore(null)
+        } finally {
+          setHasCheckedBookstore(true)
+          setIsCheckingBookstore(false)
         }
-      } catch (error) {
-        console.log('❌ No bookstore found:', error.response?.status, error.response?.data?.message)
-        setBookstore(null)
-      } finally {
-        setHasCheckedBookstore(true)
-        setIsCheckingBookstore(false)
       }
     }
 
-    checkBookstore()
-  }, [user, isAuthenticated, hasCheckedBookstore, isCheckingBookstore])
+    checkBookstoreRegistration()
+  }, [user, hasCheckedBookstore, isCheckingBookstore])
 
   const handleCreateLibrary = async () => {
-    navigate('/bookstore/register')
-    setIsUserMenuOpen(false)
+    try {
+      // First check if bookstore already exists
+      const existingResponse = await fetch('/api/bookstores', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (existingResponse.ok) {
+        const data = await existingResponse.json()
+        const userBookstores = data.bookstores?.filter(bs => bs.owner_id === JSON.parse(atob(localStorage.getItem('token').split('.')[1])).userId)
+        
+        if (userBookstores && userBookstores.length > 0) {
+          // Bookstore exists, redirect to it
+          navigate(`/library/${userBookstores[0].id}/dashboard`)
+          return
+        }
+      }
+      
+      // If no bookstore found, create one
+      const response = await fetch('/api/bookstores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          name: 'مكتبة المتنبي الرقمية',
+          name_arabic: 'مكتبة المتنبي الرقمية',
+          description: 'مكتبة رقمية متخصصة في الكتب العربية والتراث',
+          description_arabic: 'مكتبة رقمية متخصصة في الكتب العربية والتراث',
+          address: 'بغداد، العراق',
+          address_arabic: 'بغداد، العراق',
+          phone: '+964-1-234-5678',
+          governorate: 'بغداد'
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        // Success - redirect to new bookstore dashboard
+        navigate(`/library/${result.bookstore.id}/dashboard`)
+      } else if (result.error === 'Bookstore already exists') {
+        // Bookstore exists but we couldn't find it - try to get it again
+        alert('المكتبة موجودة بالفعل. جاري إعادة تحميل الصفحة...')
+        window.location.reload()
+      } else {
+        console.error('Failed to create bookstore:', result)
+        alert('فشل في إنشاء المكتبة: ' + (result.message || 'خطأ غير معروف'))
+      }
+    } catch (error) {
+      console.error('Error creating bookstore:', error)
+      alert('حدث خطأ أثناء إنشاء المكتبة')
+    }
   }
-
-  const refreshBookstoreCheck = () => {
-    console.log('🔄 Manually refreshing bookstore check...')
-    setHasCheckedBookstore(false)
-    setIsCheckingBookstore(false)
-    setBookstore(null)
-  }
-
-  const navLinks = [
-    { path: '/', label: 'الرئيسية', icon: null },
-    { path: '/books', label: 'الكتب', icon: BookOpen },
-    { path: '/bookstores', label: 'المكتبات', icon: Store },
-  ]
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <nav className="bg-gray-50 shadow-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 rtl:space-x-reverse">
+          <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse">
             <img 
               src="/logoWhiteBg.png" 
               alt="المتنبي" 
-              className="h-12 w-auto object-contain"
+              className="w-8 h-8 object-contain"
             />
+            <span className="text-xl font-bold text-primary-dark hidden sm:block">المتنبي</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8 rtl:space-x-reverse">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`nav-link ${isActivePath(link.path) ? 'nav-link-active' : ''}`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Link
+              to="/"
+              className={`nav-link ${isActivePath('/') ? 'text-primary-brown' : ''}`}
+            >
+              الرئيسية
+            </Link>
+            <Link
+              to="/books"
+              className={`nav-link ${isActivePath('/books') ? 'text-primary-brown' : ''}`}
+            >
+              الكتب
+            </Link>
+            <Link
+              to="/bookstores"
+              className={`nav-link ${isActivePath('/bookstores') ? 'text-primary-brown' : ''}`}
+            >
+              المكتبات
+            </Link>
           </div>
 
-          {/* Search Bar */}
+          {/* Desktop Search */}
           <div className="hidden md:block flex-1 max-w-md mx-8">
             <form onSubmit={handleSearch} className="relative">
               <input
@@ -143,18 +176,18 @@ const Navbar = () => {
                 placeholder="ابحث عن كتاب أو مؤلف..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-brown focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-brown"
               />
               <button
                 type="submit"
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary-brown"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4" />
               </button>
             </form>
           </div>
 
-          {/* Right side actions */}
+          {/* Right side items */}
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
             {/* Cart */}
             <Link
@@ -164,7 +197,7 @@ const Navbar = () => {
               <ShoppingCart className="w-6 h-6" />
               {itemCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary-brown text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {itemCount > 99 ? '99+' : itemCount}
+                  {itemCount}
                 </span>
               )}
             </Link>
@@ -187,105 +220,198 @@ const Navbar = () => {
                       <User className="w-5 h-5 text-white" />
                     </div>
                   )}
-                  <span className="hidden md:block text-sm font-medium">
+                  <span className="hidden md:block text-sm font-medium max-w-32 truncate" title={user?.full_name}>
                     {user?.full_name}
                   </span>
                 </button>
 
                 {/* User Dropdown */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <Link
-                      to="/profile"
-                      className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>الملف الشخصي</span>
-                    </Link>
-                    
-                    <Link
-                      to="/orders"
-                      className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <Package className="w-4 h-4" />
-                      <span>طلباتي</span>
-                    </Link>
+                  <>
+                    {/* Mobile Dropdown - Full Width */}
+                    <div className="sm:hidden fixed left-0 right-0 top-16 bg-gray-50 border-b border-gray-200 shadow-lg z-50">
+                      <div className="px-4 py-2 max-h-96 overflow-y-auto">
+                        <Link
+                          to="/profile"
+                          className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>الملف الشخصي</span>
+                        </Link>
+                        
+                        <Link
+                          to="/orders"
+                          className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Package className="w-4 h-4" />
+                          <span>طلباتي</span>
+                        </Link>
 
-                    {user?.role === 'bookstore_owner' && (
-                      <>
-                        {isCheckingBookstore ? (
-                          // Loading state
-                          <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50">
-                            <div className="flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm text-gray-600">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-brown"></div>
-                              <span>جاري التحقق...</span>
-                            </div>
-                          </div>
-                        ) : !bookstore && hasCheckedBookstore ? (
-                          // User has NOT registered a library yet
-                          <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50">
-                            <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-                              يبدو أنك لم تسجل مكتبتك بعد
-                            </p>
-                            <button
-                              onClick={handleCreateLibrary}
-                              className="w-full inline-flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                              <span>إنشاء مكتبة رقمية</span>
-                            </button>
-                          </div>
-                        ) : bookstore ? (
-                          // User HAS registered a library
+                        {user?.role === 'bookstore_owner' && (
                           <>
-                            <div className="px-4 py-2 border-t border-gray-200">
-                              <p className="text-xs text-gray-500 mb-1">مكتبتي</p>
-                              <p className="text-sm font-semibold text-primary-brown">{bookstore.name}</p>
-                            </div>
-                            <Link
-                              to={`/library/${bookstore.id}/dashboard`}
-                              className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => setIsUserMenuOpen(false)}
-                            >
-                              <LayoutDashboard className="w-4 h-4" />
-                              <span>لوحة التحكم</span>
-                            </Link>
-                            <Link
-                              to={`/library/${bookstore.id}/books/add`}
-                              className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => setIsUserMenuOpen(false)}
-                            >
-                              <Plus className="w-4 h-4" />
-                              <span>إضافة كتاب</span>
-                            </Link>
+                            {isCheckingBookstore ? (
+                              <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50 rounded-lg my-2">
+                                <div className="flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm text-gray-600">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-brown"></div>
+                                  <span>جاري التحقق...</span>
+                                </div>
+                              </div>
+                            ) : !bookstore && hasCheckedBookstore ? (
+                              <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50 rounded-lg my-2">
+                                <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                                  يبدو أنك لم تسجل مكتبتك بعد
+                                </p>
+                                <button
+                                  onClick={handleCreateLibrary}
+                                  className="w-full inline-flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>إنشاء مكتبة رقمية</span>
+                                </button>
+                              </div>
+                            ) : bookstore ? (
+                              <>
+                                <div className="px-4 py-2 border-t border-gray-200 my-2">
+                                  <p className="text-xs text-gray-500 mb-1">مكتبتي</p>
+                                  <p className="text-sm font-semibold text-primary-brown truncate" title={bookstore.name}>
+                                    {bookstore.name}
+                                  </p>
+                                </div>
+                                <Link
+                                  to={`/library/${bookstore.id}/dashboard`}
+                                  className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => setIsUserMenuOpen(false)}
+                                >
+                                  <LayoutDashboard className="w-4 h-4" />
+                                  <span>لوحة التحكم</span>
+                                </Link>
+                                <Link
+                                  to={`/library/${bookstore.id}/books/add`}
+                                  className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => setIsUserMenuOpen(false)}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>إضافة كتاب</span>
+                                </Link>
+                              </>
+                            ) : null}
                           </>
-                        ) : null}
-                      </>
-                    )}
+                        )}
 
-                    {user?.role === 'admin' && (
+                        {user?.role === 'admin' && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            <span>لوحة الإدارة</span>
+                          </Link>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg w-full text-right"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>تسجيل الخروج</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Desktop Dropdown - Normal Position */}
+                    <div className="hidden sm:block absolute right-0 mt-2 w-56 bg-gray-50 rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                       <Link
-                        to="/admin"
+                        to="/profile"
                         className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         <Settings className="w-4 h-4" />
-                        <span>لوحة الإدارة</span>
+                        <span>الملف الشخصي</span>
                       </Link>
-                    )}
+                      
+                      <Link
+                        to="/orders"
+                        className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Package className="w-4 h-4" />
+                        <span>طلباتي</span>
+                      </Link>
 
-                    <hr className="my-2" />
-                    
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-right"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>تسجيل الخروج</span>
-                    </button>
-                  </div>
+                      {user?.role === 'bookstore_owner' && (
+                        <>
+                          {isCheckingBookstore ? (
+                            <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50">
+                              <div className="flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm text-gray-600">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-brown"></div>
+                                <span>جاري التحقق...</span>
+                              </div>
+                            </div>
+                          ) : !bookstore && hasCheckedBookstore ? (
+                            <div className="px-4 py-3 border-t border-b border-gray-200 bg-gray-50">
+                              <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                                يبدو أنك لم تسجل مكتبتك بعد
+                              </p>
+                              <button
+                                onClick={handleCreateLibrary}
+                                className="w-full inline-flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                              >
+                                <Plus className="w-4 h-4" />
+                                <span>إنشاء مكتبة رقمية</span>
+                              </button>
+                            </div>
+                          ) : bookstore ? (
+                            <>
+                              <div className="px-4 py-2 border-t border-gray-200">
+                                <p className="text-xs text-gray-500 mb-1">مكتبتي</p>
+                                <p className="text-sm font-semibold text-primary-brown truncate" title={bookstore.name}>
+                                  {bookstore.name}
+                                </p>
+                              </div>
+                              <Link
+                                to={`/library/${bookstore.id}/dashboard`}
+                                className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <LayoutDashboard className="w-4 h-4" />
+                                <span>لوحة التحكم</span>
+                              </Link>
+                              <Link
+                                to={`/library/${bookstore.id}/books/add`}
+                                className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <Plus className="w-4 h-4" />
+                                <span>إضافة كتاب</span>
+                              </Link>
+                            </>
+                          ) : null}
+                        </>
+                      )}
+
+                      {user?.role === 'admin' && (
+                        <Link
+                          to="/admin"
+                          className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          <span>لوحة الإدارة</span>
+                        </Link>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-right"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>تسجيل الخروج</span>
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             ) : (
@@ -330,48 +456,42 @@ const Navbar = () => {
                 />
                 <button
                   type="submit"
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary-brown"
                 >
-                  <Search className="w-5 h-5" />
+                  <Search className="w-4 h-4" />
                 </button>
               </div>
             </form>
 
             {/* Mobile Navigation Links */}
-            <div className="space-y-2 px-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`block py-2 text-base font-medium ${
-                    isActivePath(link.path) 
-                      ? 'text-primary-brown' 
-                      : 'text-gray-600 hover:text-primary-brown'
-                  }`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-
-              {!isAuthenticated && (
-                <>
-                  <Link
-                    to="/login"
-                    className="block py-2 text-base font-medium text-gray-600 hover:text-primary-brown"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    تسجيل الدخول
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="block py-2 text-base font-medium text-gray-600 hover:text-primary-brown"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    إنشاء حساب
-                  </Link>
-                </>
-              )}
+            <div className="space-y-1 px-4">
+              <Link
+                to="/"
+                className={`block py-2 text-base font-medium ${
+                  isActivePath('/') ? 'text-primary-brown' : 'text-gray-600 hover:text-primary-brown'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                الرئيسية
+              </Link>
+              <Link
+                to="/books"
+                className={`block py-2 text-base font-medium ${
+                  isActivePath('/books') ? 'text-primary-brown' : 'text-gray-600 hover:text-primary-brown'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                الكتب
+              </Link>
+              <Link
+                to="/bookstores"
+                className={`block py-2 text-base font-medium ${
+                  isActivePath('/bookstores') ? 'text-primary-brown' : 'text-gray-600 hover:text-primary-brown'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                المكتبات
+              </Link>
             </div>
           </div>
         )}

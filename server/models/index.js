@@ -11,6 +11,7 @@ const BookShare = require('./BookShare');
 const LibraryMetric = require('./LibraryMetric');
 const UserActivity = require('./UserActivity');
 const PasswordResetToken = require('./PasswordResetToken');
+const LibraryReview = require('./LibraryReview');
 
 // Define associations
 
@@ -43,6 +44,12 @@ User.hasMany(SearchQuery, {
   foreignKey: 'user_id',
   as: 'searchQueries',
   onDelete: 'SET NULL'
+});
+
+User.hasMany(LibraryReview, {
+  foreignKey: 'user_id',
+  as: 'libraryReviews',
+  onDelete: 'CASCADE'
 });
 
 // Bookstore associations
@@ -208,6 +215,12 @@ Bookstore.hasMany(LibraryMetric, {
   onDelete: 'CASCADE'
 });
 
+Bookstore.hasMany(LibraryReview, {
+  foreignKey: 'bookstore_id',
+  as: 'libraryReviews',
+  onDelete: 'CASCADE'
+});
+
 // BookShare associations
 BookShare.belongsTo(LibraryBook, {
   foreignKey: 'library_book_id',
@@ -249,6 +262,17 @@ User.hasMany(PasswordResetToken, {
   onDelete: 'CASCADE'
 });
 
+// LibraryReview associations
+LibraryReview.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
+
+LibraryReview.belongsTo(Bookstore, {
+  foreignKey: 'bookstore_id',
+  as: 'bookstore'
+});
+
 module.exports = {
   User,
   Bookstore,
@@ -263,5 +287,6 @@ module.exports = {
   BookShare,
   LibraryMetric,
   UserActivity,
-  PasswordResetToken
+  PasswordResetToken,
+  LibraryReview
 };

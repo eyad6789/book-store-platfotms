@@ -16,6 +16,7 @@ const wishlistRoutes = require('./routes/wishlist');
 const analyticsRoutes = require('./routes/analytics');
 const libraryBooksRoutes = require('./routes/libraryBooks');
 const libraryDashboardRoutes = require('./routes/libraryDashboard');
+const libraryRatingsRoutes = require('./routes/libraryRatings');
 const adminAnalyticsRoutes = require('./routes/adminAnalytics');
 const adminRoutes = require('./routes/admin');
 const setupRoutes = require('./routes/setup');
@@ -92,6 +93,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/library', libraryBooksRoutes);
 app.use('/api/library', libraryDashboardRoutes);
+app.use('/api/ratings', libraryRatingsRoutes);
 app.use('/api/admin', adminAnalyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/setup', setupRoutes);
@@ -116,7 +118,9 @@ app.get('/api', (req, res) => {
         search: 'GET /api/books/search',
         categories: 'GET /api/books/categories',
         featured: 'GET /api/books/featured',
-        details: 'GET /api/books/:id'
+        details: 'GET /api/books/:id',
+        library: 'GET /api/books/library',
+        libraryDetails: 'GET /api/books/library/:id'
       },
       bookstores: {
         list: 'GET /api/bookstores',
@@ -132,6 +136,13 @@ app.get('/api', (req, res) => {
       },
       admin: {
         dashboard: 'GET /api/admin/dashboard',
+        pendingBooks: 'GET /api/admin/books/pending',
+        approveBook: 'PUT /api/admin/books/:id/approve',
+        rejectBook: 'PUT /api/admin/books/:id/reject',
+        pendingBookstores: 'GET /api/admin/bookstores/pending',
+        approveBookstore: 'PUT /api/admin/bookstores/:id/approve',
+        rejectBookstore: 'PUT /api/admin/bookstores/:id/reject',
+        users: 'GET /api/admin/users',
         exportReports: 'GET /api/admin/reports/export'
       },
       wishlist: {

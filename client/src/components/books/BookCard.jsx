@@ -12,16 +12,21 @@ const BookCard = ({ book, showBookstore = true }) => {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [wishlistLoading, setWishlistLoading] = useState(false)
 
+  // Use original ID for all API operations
+  const originalId = book.id.toString().startsWith('library-') 
+    ? book.id.replace('library-', '') 
+    : book.id
+
   // Check if book is in wishlist on mount
   useEffect(() => {
     if (user && token) {
       checkWishlistStatus()
     }
-  }, [user, token, book.id])
+  }, [user, token, originalId])
 
   const checkWishlistStatus = async () => {
     try {
-      const response = await fetch(`/api/wishlist/check/${book.id}`, {
+      const response = await fetch(`/api/wishlist/check/${originalId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -38,13 +43,17 @@ const BookCard = ({ book, showBookstore = true }) => {
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    if (book.stock_quantity === 0) {
-      toast.error('هذا الكتاب غير متوفر حالياً')
-      return
+
+    // All books are always available - no stock checks needed
+    const cartBook = {
+      ...book,
+      // Use original ID for cart operations
+      id: originalId,
+      // Set stock to unlimited (999) since we removed quantity restrictions
+      stock_quantity: 999
     }
 
-    const success = addToCart(book, 1)
+    const success = addToCart(cartBook, 1)
     if (success) {
       // Toast is handled in the cart context
     }
@@ -62,7 +71,7 @@ const BookCard = ({ book, showBookstore = true }) => {
     setWishlistLoading(true)
     try {
       const method = isWishlisted ? 'DELETE' : 'POST'
-      const response = await fetch(`/api/wishlist/${book.id}`, {
+      const response = await fetch(`/api/wishlist/${originalId}`, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -85,8 +94,10 @@ const BookCard = ({ book, showBookstore = true }) => {
   }
 
   const statusBadge = getBookStatusBadge(book)
-  const inCart = isInCart(book.id)
-  const cartQuantity = getItemQuantity(book.id)
+  const inCart = isInCart(originalId)
+  const cartQuantity = getItemQuantity(originalId)
+  
+  // All books are always available - no availability checks needed
 
   return (
     <div className="book-card group">
@@ -205,26 +216,18 @@ const BookCard = ({ book, showBookstore = true }) => {
             )}
           </div>
 
-          {/* Add to Cart Button */}
+          {/* Add to Cart Button - Always Available */}
           <button
             onClick={handleAddToCart}
-            disabled={book.stock_quantity === 0}
             className={`w-full flex items-center justify-center space-x-2 rtl:space-x-reverse py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-              book.stock_quantity === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : inCart
+              inCart
                 ? 'bg-primary-gold text-primary-dark hover:bg-opacity-90'
-                : 'bg-primary-brown text-white hover:bg-opacity-90'
+                : 'bg-primary-brown text-white hover:bg-primary-dark'
             }`}
           >
             <ShoppingCart className="w-4 h-4" />
             <span>
-              {book.stock_quantity === 0
-                ? 'غير متوفر'
-                : inCart
-                ? `في السلة (${cartQuantity})`
-                : 'أضف للسلة'
-              }
+              {inCart ? `في السلة (${cartQuantity})` : 'أضف للسلة'}
             </span>
           </button>
         </div>

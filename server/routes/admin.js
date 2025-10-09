@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { User, Bookstore, Book, Order, OrderItem, Category, LibraryBook, UserActivity } = require('../models');
+const { User, Bookstore, Book, Order, OrderItem, Category, LibraryBook, UserActivity, LibraryReview, BookReview } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 
 // Middleware to ensure only admins can access these routes
@@ -441,6 +441,117 @@ router.get('/reports/export', async (req, res) => {
     res.status(500).json({
       error: 'Failed to export report',
       message: 'Something went wrong while exporting the report'
+    });
+  }
+});
+
+// @route   GET /api/admin/ratings/analytics
+// @desc    Get rating analytics for admin dashboard
+// @access  Private (Admin only)
+router.get('/ratings/analytics', async (req, res) => {
+  try {
+    // Get total ratings count
+    const totalLibraryRatings = await LibraryReview.count();
+    const totalBookRatings = await BookReview.count();
+    const totalRatings = totalLibraryRatings + totalBookRatings;
+
+    // Get average ratings
+    const avgLibraryRating = await LibraryReview.findOne({
+      attributes: [[fn('AVG', col('rating')), 'avg_rating']]
+    });
+    
+    const avgBookRating = await BookReview.findOne({
+      attributes: [[fn('AVG', col('rating')), 'avg_rating']]
+    });
+
+    // Calculate overall average
+    const overallAverage = totalRatings > 0 
+      ? ((parseFloat(avgLibraryRating?.dataValues?.avg_rating || 0) * totalLibraryRatings) + 
+         (parseFloat(avgBookRating?.dataValues?.avg_rating || 0) * totalBookRatings)) / totalRatings
+      : 0;
+
+    // Get rating distribution for library reviews
+    const libraryRatingDistribution = await LibraryReview.findAll({
+      attributes: [
+        'rating',
+        [fn('COUNT', col('rating')), 'count']
+      ],
+      group: ['rating'],
+      order: [['rating', 'DESC']]
+    });
+
+    // Get rating distribution for book reviews
+    const bookRatingDistribution = await BookReview.findAll({
+      attributes: [
+        'rating',
+        [fn('COUNT', col('rating')), 'count']
+      ],
+      group: ['rating'],
+      order: [['rating', 'DESC']]
+    });
+
+    // Combine distributions
+    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    
+    libraryRatingDistribution.forEach(item => {
+      distribution[item.rating] += parseInt(item.dataValues.count);
+    });
+    
+    bookRatingDistribution.forEach(item => {
+      distribution[item.rating] += parseInt(item.dataValues.count);
+    });
+
+    // Get top rated libraries
+    const topRatedLibraries = await Bookstore.findAll({
+      where: {
+        rating: { [Op.gt]: 0 },
+        is_active: true,
+        is_approved: true
+      },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['full_name']
+        }
+      ],
+      attributes: [
+        'id', 'name', 'name_arabic', 'rating', 'total_reviews',
+        [literal('(SELECT COUNT(*) FROM books WHERE bookstore_id = Bookstore.id)'), 'total_books']
+      ],
+      order: [['rating', 'DESC'], ['total_reviews', 'DESC']],
+      limit: 10
+    });
+
+    const analyticsData = {
+      stats: {
+        totalRatings,
+        libraryRatings: totalLibraryRatings,
+        bookRatings: totalBookRatings,
+        averageRating: parseFloat(overallAverage.toFixed(2)),
+        distribution
+      },
+      topRatedLibraries: topRatedLibraries.map(library => ({
+        id: library.id,
+        name: library.name,
+        name_arabic: library.name_arabic,
+        rating: parseFloat(library.rating),
+        total_reviews: library.total_reviews,
+        total_books: parseInt(library.dataValues.total_books),
+        owner: library.owner
+      }))
+    };
+
+    res.json({
+      success: true,
+      data: analyticsData
+    });
+
+  } catch (error) {
+    console.error('Error fetching rating analytics:', error);
+    res.status(500).json({
+      error: 'Failed to fetch rating analytics',
+      message: 'Something went wrong while fetching rating analytics'
     });
   }
 });

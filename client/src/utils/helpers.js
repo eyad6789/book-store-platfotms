@@ -144,6 +144,17 @@ export const englishToArabicNumbers = (str) => {
 
 // Get book status badge info
 export const getBookStatusBadge = (book) => {
+  // Use availability_status if available (for library books)
+  if (book.availability_status) {
+    const statusMap = {
+      'available': { text: 'متاح', className: 'badge-success' },
+      'unavailable': { text: 'غير متوفر', className: 'badge-error' },
+      'coming_soon': { text: 'قريباً', className: 'badge-warning' }
+    }
+    return statusMap[book.availability_status] || { text: 'متاح', className: 'badge-success' }
+  }
+  
+  // Fallback to old logic for regular books
   if (!book.is_active) {
     return { text: 'غير متاح', className: 'badge-error' }
   }

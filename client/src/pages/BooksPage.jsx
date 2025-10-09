@@ -14,9 +14,10 @@ const BooksPage = () => {
   const [pagination, setPagination] = useState({})
   const [viewMode, setViewMode] = useState('grid')
   const [showFilters, setShowFilters] = useState(false)
-  
+
   const [searchParams, setSearchParams] = useSearchParams()
-  
+  const [bookSources, setBookSources] = useState({ regular_books: 0, library_books: 0 })
+
   // Get current filters from URL
   const currentFilters = {
     search: searchParams.get('search') || '',
@@ -27,6 +28,7 @@ const BooksPage = () => {
     sort_by: searchParams.get('sort_by') || 'created_at',
     sort_order: searchParams.get('sort_order') || 'DESC',
     featured_only: searchParams.get('featured') === 'true',
+    include_library: searchParams.get('include_library') !== 'false', // Include by default
     page: parseInt(searchParams.get('page')) || 1
   }
 
@@ -42,7 +44,7 @@ const BooksPage = () => {
   const updateFilters = (newFilters) => {
     const updatedFilters = { ...filters, ...newFilters }
     setFilters(updatedFilters)
-    
+
     // Update URL
     const params = new URLSearchParams()
     Object.entries(updatedFilters).forEach(([key, value]) => {
@@ -53,11 +55,11 @@ const BooksPage = () => {
     setSearchParams(params)
   }
 
-  // Fetch books
+  // Fetch books from both regular and library APIs
   const fetchBooks = async (filterParams = filters) => {
     try {
       setSearchLoading(true)
-      
+
       // Clean up filters - remove empty values
       const cleanFilters = Object.entries(filterParams).reduce((acc, [key, value]) => {
         if (value && value !== '' && value !== false) {
@@ -66,9 +68,57 @@ const BooksPage = () => {
         return acc
       }, {})
 
-      const response = await booksAPI.getBooks(cleanFilters)
-      setBooks(response.data.books || [])
-      setPagination(response.data.pagination || {})
+      console.log('🔍 Fetching books from both sources...')
+
+      // Fetch from both APIs simultaneously
+      const [regularResponse, libraryResponse] = await Promise.all([
+        booksAPI.getBooks({ ...cleanFilters, include_library: false }),
+        filters.include_library !== false ? booksAPI.getLibraryBooks(cleanFilters) : Promise.resolve({ data: { books: [], pagination: { totalItems: 0 } } })
+      ])
+
+      console.log('📚 Regular books response:', regularResponse.data.pagination?.totalItems || 0)
+      console.log('📖 Library books response:', libraryResponse.data.pagination?.totalItems || 0)
+
+      // Combine the results with unique keys
+      const regularBooks = regularResponse.data.books || []
+      const libraryBooks = (libraryResponse.data.books || []).map(book => ({
+        ...book,
+        id: `library-${book.id}`, // Make library book IDs unique
+        source: 'library',
+        // Map library book fields to match regular book structure
+        title_arabic: book.title_ar || book.title,
+        author_arabic: book.author_ar || book.author,
+        description_arabic: book.description_ar || book.description,
+        image_url: book.cover_image_url
+      }))
+
+      // Combine and limit results
+      const combinedBooks = [...regularBooks, ...libraryBooks].slice(0, parseInt(cleanFilters.limit || 12))
+
+      setBooks(combinedBooks)
+
+      // Update pagination with combined totals
+      const totalItems = (regularResponse.data.pagination?.totalItems || 0) + (libraryResponse.data.pagination?.totalItems || 0)
+      const itemsPerPage = parseInt(cleanFilters.limit || 12)
+      const totalPages = Math.ceil(totalItems / itemsPerPage)
+
+      setPagination({
+        currentPage: parseInt(cleanFilters.page || 1),
+        totalPages,
+        totalItems,
+        itemsPerPage,
+        hasNext: parseInt(cleanFilters.page || 1) < totalPages,
+        hasPrev: parseInt(cleanFilters.page || 1) > 1
+      })
+
+      // Update sources
+      setBookSources({
+        regular_books: regularResponse.data.pagination?.totalItems || 0,
+        library_books: libraryResponse.data.pagination?.totalItems || 0
+      })
+
+      console.log('✅ Combined books:', combinedBooks.length, 'Total items:', totalItems)
+
     } catch (error) {
       console.error('Error fetching books:', error)
       setBooks([])
@@ -126,6 +176,7 @@ const BooksPage = () => {
       sort_by: 'created_at',
       sort_order: 'DESC',
       featured_only: false,
+      include_library: true,
       page: 1
     })
     setSearchParams({})
@@ -209,21 +260,19 @@ const BooksPage = () => {
             <div className="flex items-center space-x-2 rtl:space-x-reverse">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === 'grid'
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
                     ? 'bg-primary-brown text-white'
                     : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                }`}
+                  }`}
               >
                 <Grid className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === 'list'
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
                     ? 'bg-primary-brown text-white'
                     : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                }`}
+                  }`}
               >
                 <List className="w-5 h-5" />
               </button>
@@ -308,24 +357,38 @@ const BooksPage = () => {
                 </div>
               </div>
 
-              {/* Featured Toggle */}
-              <div className="mt-4 flex items-center justify-between">
-                <label className="flex items-center space-x-3 rtl:space-x-reverse">
-                  <input
-                    type="checkbox"
-                    checked={filters.featured_only}
-                    onChange={(e) => updateFilters({ featured_only: e.target.checked, page: 1 })}
-                    className="h-4 w-4 text-primary-brown focus:ring-primary-brown border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">الكتب المميزة فقط</span>
-                </label>
+              {/* Toggle Options */}
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-3 rtl:space-x-reverse">
+                      <input
+                        type="checkbox"
+                        checked={filters.featured_only}
+                        onChange={(e) => updateFilters({ featured_only: e.target.checked, page: 1 })}
+                        className="h-4 w-4 text-primary-brown focus:ring-primary-brown border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-700">الكتب المميزة فقط</span>
+                    </label>
 
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-primary-brown hover:text-primary-dark transition-colors"
-                >
-                  مسح جميع الفلاتر
-                </button>
+                    <label className="flex items-center space-x-3 rtl:space-x-reverse">
+                      <input
+                        type="checkbox"
+                        checked={filters.include_library}
+                        onChange={(e) => updateFilters({ include_library: e.target.checked, page: 1 })}
+                        className="h-4 w-4 text-primary-brown focus:ring-primary-brown border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-700">تضمين كتب المكتبات المشاركة</span>
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm text-primary-brown hover:text-primary-dark transition-colors"
+                  >
+                    مسح جميع الفلاتر
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -334,14 +397,21 @@ const BooksPage = () => {
         {/* Results */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
-            <p className="text-gray-600">
-              {searchLoading ? (
-                'جاري البحث...'
-              ) : (
-                `عُثر على ${pagination.total_items || 0} كتاب`
+            <div className="space-y-1">
+              <p className="text-gray-600">
+                {searchLoading ? (
+                  'جاري البحث...'
+                ) : (
+                  `عُثر على ${pagination.totalItems || pagination.total_items || 0} كتاب`
+                )}
+              </p>
+              {(bookSources.regular_books > 0 || bookSources.library_books > 0) && (
+                <p className="text-sm text-gray-500">
+                  ({bookSources.regular_books} كتاب عادي، {bookSources.library_books} كتاب مشارك)
+                </p>
               )}
-            </p>
-            
+            </div>
+
             {pagination.total_pages > 1 && (
               <p className="text-sm text-gray-500">
                 الصفحة {pagination.current_page} من {pagination.total_pages}
@@ -362,9 +432,9 @@ const BooksPage = () => {
               : 'space-y-4'
           }>
             {books.map((book) => (
-              <BookCard 
-                key={book.id} 
-                book={book} 
+              <BookCard
+                key={book.id}
+                book={book}
                 showBookstore={true}
                 viewMode={viewMode}
               />
@@ -396,11 +466,10 @@ const BooksPage = () => {
               <button
                 onClick={() => handlePageChange(pagination.current_page - 1)}
                 disabled={!pagination.has_prev}
-                className={`px-4 py-2 rounded-lg border ${
-                  pagination.has_prev
+                className={`px-4 py-2 rounded-lg border ${pagination.has_prev
                     ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     : 'border-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 السابق
               </button>
@@ -409,16 +478,15 @@ const BooksPage = () => {
               {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
                 const page = Math.max(1, pagination.current_page - 2) + i
                 if (page > pagination.total_pages) return null
-                
+
                 return (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded-lg border ${
-                      page === pagination.current_page
+                    className={`px-4 py-2 rounded-lg border ${page === pagination.current_page
                         ? 'border-primary-brown bg-primary-brown text-white'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>
@@ -429,11 +497,10 @@ const BooksPage = () => {
               <button
                 onClick={() => handlePageChange(pagination.current_page + 1)}
                 disabled={!pagination.has_next}
-                className={`px-4 py-2 rounded-lg border ${
-                  pagination.has_next
+                className={`px-4 py-2 rounded-lg border ${pagination.has_next
                     ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     : 'border-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 التالي
               </button>

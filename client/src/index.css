@@ -51,7 +51,7 @@
   
   /* Input styles */
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-brown focus:border-transparent transition-all duration-200 bg-white;
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-brown focus:border-transparent transition-all duration-200 bg-gray-50;
   }
   
   .input-error {
@@ -60,7 +60,7 @@
   
   /* Card styles */
   .card {
-    @apply bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden;
+    @apply bg-gray-50 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden;
   }
   
   .card-body {
@@ -69,7 +69,7 @@
   
   /* Book card specific styles - Enhanced */
   .book-card {
-    @apply bg-white rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-2 transition-all duration-300 cursor-pointer overflow-hidden;
+    @apply bg-gray-50 rounded-xl shadow-soft hover:shadow-hover transform hover:-translate-y-2 transition-all duration-300 cursor-pointer overflow-hidden;
   }
   
   .book-card-image {
@@ -78,7 +78,7 @@
   
   /* Glass morphism effect */
   .glass {
-    @apply bg-white/90 backdrop-blur-lg border border-white/20;
+    @apply bg-gray-50/95 backdrop-blur-lg border border-gray-200/30;
   }
   
   .glass-dark {
@@ -139,7 +139,7 @@
   }
   
   .modal-content {
-    @apply bg-white rounded-xl max-w-md w-full max-h-screen overflow-y-auto;
+    @apply bg-gray-50 rounded-xl max-w-md w-full max-h-screen overflow-y-auto;
   }
   
   /* Breadcrumb styles */

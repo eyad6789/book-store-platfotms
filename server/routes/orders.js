@@ -11,11 +11,38 @@ const router = express.Router();
 // @route   POST /api/orders
 // @desc    Create a new order
 // @access  Private (Customers only)
-router.post('/', authenticateToken, validate(orderSchemas.create), async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
+    console.log('🛒 Order creation request received');
+    console.log('👤 User:', req.user ? req.user.id : 'undefined');
+    console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
+    
+    // User should be set by authenticateToken middleware
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'Please login to create an order'
+      });
+    }
+    
     const { items, delivery_address, delivery_phone, delivery_notes, payment_method } = req.body;
+
+    // Basic validation
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Order must contain at least one item'
+      });
+    }
+
+    if (!delivery_address || !delivery_phone) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Delivery address and phone are required'
+      });
+    }
 
     // Validate and calculate order totals
     let subtotal = 0;
@@ -44,13 +71,8 @@ router.post('/', authenticateToken, validate(orderSchemas.create), async (req, r
         });
       }
 
-      if (book.stock_quantity < item.quantity) {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Insufficient stock',
-          message: `Only ${book.stock_quantity} copies of "${book.title}" are available`
-        });
-      }
+      // Stock quantity check removed - all books are always available
+      console.log('📚 Book found:', book.title_arabic || book.title, 'Price:', book.price);
 
       const itemTotal = parseFloat(book.price) * item.quantity;
       subtotal += itemTotal;
@@ -68,9 +90,17 @@ router.post('/', authenticateToken, validate(orderSchemas.create), async (req, r
     const tax_amount = 0; // No tax for MVP
     const total_amount = subtotal + shipping_cost + tax_amount;
 
+    // Generate order number manually
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const orderNumber = `ALM-${timestamp}-${random}`;
+    
+    console.log('📋 Generated order number:', orderNumber);
+    
     // Create order
     const order = await Order.create({
-      customer_id: req.userId,
+      customer_id: req.user.id,
+      order_number: orderNumber,
       subtotal,
       shipping_cost,
       tax_amount,
@@ -88,19 +118,14 @@ router.post('/', authenticateToken, validate(orderSchemas.create), async (req, r
         ...item
       }, { transaction });
 
-      // Update book stock
-      await Book.decrement('stock_quantity', {
-        by: item.quantity,
-        where: { id: item.book_id },
-        transaction
-      });
-
-      // Update book sales count
+      // Update book sales count (stock quantity management removed)
       await Book.increment('total_sales', {
         by: item.quantity,
         where: { id: item.book_id },
         transaction
       });
+      
+      console.log('📈 Updated sales count for book:', item.book_id);
     }
 
     await transaction.commit();
@@ -122,15 +147,17 @@ router.post('/', authenticateToken, validate(orderSchemas.create), async (req, r
       ]
     });
 
-    // Send notifications after successful order creation
+    // Send notifications after successful order creation (optional)
     try {
       // Send confirmation to customer
-      await sendCustomerConfirmation(order.id);
+      console.log(`📧 Sending customer confirmation for order ${order.order_number}`);
+      // await sendCustomerConfirmation(order.id); // Temporarily disabled
       
       // Notify bookstore owners about new purchases
-      await createPurchaseNotifications(order.id);
+      console.log(`📱 Sending purchase notifications for order ${order.order_number}`);
+      // await createPurchaseNotifications(order.id); // Temporarily disabled
       
-      console.log(`✅ Order ${order.order_number} created and notifications sent`);
+      console.log(`✅ Order ${order.order_number} created successfully (notifications disabled for now)`);
     } catch (notificationError) {
       console.error('Error sending notifications:', notificationError);
       // Don't fail the order creation if notifications fail
@@ -144,10 +171,19 @@ router.post('/', authenticateToken, validate(orderSchemas.create), async (req, r
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Create order error:', error);
+    console.error('❌ Create order error:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      sql: error.sql || 'No SQL',
+      parameters: error.parameters || 'No parameters'
+    });
+    
     res.status(500).json({
       error: 'Failed to create order',
-      message: 'Something went wrong while creating the order'
+      message: 'Something went wrong while creating the order',
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -166,7 +202,7 @@ router.get('/', authenticateToken, async (req, res) => {
     } = req.query;
 
     const offset = (page - 1) * limit;
-    const whereClause = { customer_id: req.userId };
+    const whereClause = { customer_id: req.user.id };
 
     // Status filter
     if (status) {
@@ -237,7 +273,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     // Only customers can see their own orders, admins can see all
     if (req.user.role !== 'admin') {
-      whereClause.customer_id = req.userId;
+      whereClause.customer_id = req.user.id;
     }
 
     const order = await Order.findOne({
@@ -297,7 +333,7 @@ router.put('/:id/cancel', authenticateToken, async (req, res) => {
     const order = await Order.findOne({
       where: {
         id: req.params.id,
-        customer_id: req.userId
+        customer_id: req.user.id
       },
       include: [
         {
@@ -502,7 +538,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     // If not admin, only show user's orders
     if (req.user.role !== 'admin') {
-      whereClause.customer_id = req.userId;
+      whereClause.customer_id = req.user.id;
     }
 
     const stats = await Order.findAll({
@@ -581,7 +617,7 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
 
     // Check permissions
     const userCanUpdate = req.user.role === 'admin' || 
-      order.items.some(item => item.book.bookstore.owner_id === req.userId);
+      order.items.some(item => item.book.bookstore.owner_id === req.user.id);
 
     if (!userCanUpdate) {
       return res.status(403).json({
@@ -601,7 +637,7 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
     // Send status update notifications
     const { updateOrderStatus } = require('../controllers/notificationController');
     try {
-      await updateOrderStatus(id, status, req.userId);
+      await updateOrderStatus(id, status, req.user.id);
     } catch (notificationError) {
       console.error('Error sending status update notifications:', notificationError);
     }
@@ -637,7 +673,7 @@ router.get('/bookstore/:bookstoreId', authenticateToken, async (req, res) => {
 
     // Verify ownership
     const bookstore = await Bookstore.findOne({
-      where: { id: bookstoreId, owner_id: req.userId }
+      where: { id: bookstoreId, owner_id: req.user.id }
     });
 
     if (!bookstore && req.user.role !== 'admin') {

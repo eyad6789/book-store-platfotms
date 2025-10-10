@@ -4,6 +4,7 @@ import {
   Star, Calendar, DollarSign, Activity, Share2,
   Plus, BookOpen, BarChart3, MessageSquare
 } from 'lucide-react';
+import OrderManagement from '../../components/orders/OrderManagement';
 import { Link, useParams } from 'react-router-dom';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { runAuthDiagnostics } from '../../utils/authCheck';
@@ -14,6 +15,7 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
   const [stats, setStats] = useState(null);
   const [timeRange, setTimeRange] = useState('30');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -252,193 +254,113 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
           </div>
         </div>
 
-        {/* Top Performing Books */}
-        <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-up">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">الكتب الأكثر مبيعاً</h2>
+        {/* Tabs Navigation */}
+        <div className="bg-white rounded-lg shadow-soft mb-6">
+          <div className="flex border-b overflow-x-auto">
+            {[
+              { id: 'overview', label: 'نظرة عامة', icon: BarChart3 },
+              { id: 'orders', label: 'الطلبات', icon: Package },
+              { id: 'books', label: 'الكتب', icon: BookOpen }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-6 py-4 font-medium transition whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <tab.icon className="h-5 w-5" />
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <div className="p-6">
-            {stats.topBooks.length > 0 ? (
-              <div className="space-y-4">
-                {stats.topBooks.map((book, index) => (
-                  <div key={book.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                      {index + 1}
-                    </div>
-                    <img
-                      src={book.cover_image_url || '/placeholder-book.jpg'}
-                      alt={book.title_ar}
-                      className="w-16 h-20 object-cover rounded"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{book.title_ar}</h3>
-                      <p className="text-sm text-gray-600">{book.author_ar}</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm text-gray-600">المبيعات</p>
-                      <p className="font-bold text-gray-900">{book.sales_count}</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm text-gray-600">الإيرادات</p>
-                      <p className="font-bold text-green-600">
-                        {(book.sales_count * book.price).toLocaleString()} د.ع
-                      </p>
-                    </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div>
+            {/* Top Performing Books */}
+            <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-up">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900">الكتب الأكثر مبيعاً</h2>
+              </div>
+              <div className="p-6">
+                {stats.topBooks.length > 0 ? (
+                  <div className="space-y-4">
+                    {stats.topBooks.map((book, index) => (
+                      <div key={book.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{book.title_ar}</h3>
+                          <p className="text-sm text-gray-600">{book.author_ar}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">{book.sales_count} مبيعة</p>
+                          <p className="text-sm text-gray-600">{book.price} د.ع</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p>لا توجد مبيعات بعد</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">لا توجد مبيعات بعد</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* Recent Orders */}
-          <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-in-right">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">الطلبات الأخيرة</h2>
-            </div>
-            <div className="p-6">
-              {stats.recentOrders.length > 0 ? (
-                <div className="space-y-3">
-                  {stats.recentOrders.map(order => (
-                    <div key={order.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          طلب #{order.id}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(order.created_at).toLocaleDateString('ar-IQ')}
-                        </p>
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-gray-900">
-                          {order.total_amount.toLocaleString()} د.ع
-                        </p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                          }`}>
-                          {getStatusLabel(order.status)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">لا توجد طلبات بعد</p>
-                </div>
-              )}
             </div>
           </div>
+        )}
 
-          {/* Shared Books Performance */}
-          <div className="glass rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden animate-slide-in-left">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Share2 className="h-5 w-5" />
-                الكتب المشاركة
-              </h2>
+        {activeTab === 'orders' && (
+          <OrderManagement bookstoreId={bookstoreId} />
+        )}
+
+        {activeTab === 'books' && (
+          <div className="bg-white rounded-lg shadow-soft p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">إدارة الكتب</h2>
+              <Link
+                to={`/library/${bookstoreId}/books/add`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                إضافة كتاب جديد
+              </Link>
             </div>
-            <div className="p-6">
-              {stats.sharedBooks.length > 0 ? (
-                <div className="space-y-3">
-                  {stats.sharedBooks.map(book => (
-                    <div key={book.id} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-gray-900">{book.title_ar}</h4>
-                        <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">
-                          {book.share_type === 'public' ? 'عامة' :
-                            book.share_type === 'featured' ? 'مميزة' : 'ترويجية'}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div>
-                          <p className="text-gray-600">مشاهدات</p>
-                          <p className="font-semibold">{book.views_count}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">نقرات</p>
-                          <p className="font-semibold">{book.clicks_count}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">مبيعات</p>
-                          <p className="font-semibold text-green-600">{book.conversions_count}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Share2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">لا توجد كتب مشاركة</p>
-                  <Link
-                    to={`/library/${bookstoreId}/books`}
-                    className="text-blue-600 hover:text-blue-700 text-sm mt-2 inline-block"
-                  >
-                    ابدأ بمشاركة كتبك
-                  </Link>
-                </div>
-              )}
+            <div className="text-center py-8 text-gray-500">
+              <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p>سيتم عرض قائمة الكتب هنا</p>
+              <p className="text-sm">قريباً...</p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-          <Link
-            to={`/library/${bookstoreId}/books/add`}
-            className="glass rounded-xl shadow-soft hover:shadow-hover p-6 transform hover:-translate-y-1 transition-all duration-300"
-          >
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-soft">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">إضافة كتاب جديد</h3>
-                <p className="text-sm text-gray-600">أضف كتاباً جديداً إلى مكتبتك</p>
-              </div>
-            </div>
-          </Link>
+        {activeTab === 'orders' && (
+          <OrderManagement bookstoreId={bookstoreId} />
+        )}
 
-          <Link
-            to={`/library/${bookstoreId}/books`}
-            className="glass rounded-xl shadow-soft hover:shadow-hover p-6 transform hover:-translate-y-1 transition-all duration-300"
-          >
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-soft">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">إدارة الكتب</h3>
-                <p className="text-sm text-gray-600">عرض وتعديل كتبك</p>
-              </div>
+        {activeTab === 'books' && (
+          <div className="bg-white rounded-lg shadow-soft p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">إدارة الكتب</h2>
+              <Link
+                to={`/library/${bookstoreId}/books/add`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                إضافة كتاب جديد
+              </Link>
             </div>
-          </Link>
-
-          <Link
-            to={`/library/${bookstoreId}/analytics`}
-            className="glass rounded-xl shadow-soft hover:shadow-hover p-6 transform hover:-translate-y-1 transition-all duration-300"
-          >
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-soft">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">التحليلات المتقدمة</h3>
-                <p className="text-sm text-gray-600">تقارير مفصلة عن الأداء</p>
-              </div>
+            <div className="text-center py-8 text-gray-500">
+              <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p>سيتم عرض قائمة الكتب هنا</p>
+              <p className="text-sm">قريباً...</p>
             </div>
-          </Link>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -476,17 +398,6 @@ function MetricCard({ icon, title, value, change, subtitle, color = 'blue' }) {
       </div>
     </div>
   );
-}
-
-function getStatusLabel(status) {
-  const labels = {
-    pending: 'قيد الانتظار',
-    processing: 'قيد المعالجة',
-    shipped: 'تم الشحن',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return labels[status] || status;
 }
 
 export default LibraryDashboard;

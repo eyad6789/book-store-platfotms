@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   TrendingUp, Package, Users, Eye, ShoppingCart,
   Star, Calendar, DollarSign, Activity, Share2,
-  Plus, BookOpen, BarChart3, MessageSquare
+  Plus, BookOpen, BarChart3, MessageSquare, Settings,
+  X, Save, Filter, SortAsc, Grid, List
 } from 'lucide-react';
 import OrderManagement from '../../components/orders/OrderManagement';
+import LibraryRating from '../../components/ratings/LibraryRating';
 import { Link, useParams } from 'react-router-dom';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { runAuthDiagnostics } from '../../utils/authCheck';
@@ -17,8 +19,28 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState(null);
+  const [showBookSettings, setShowBookSettings] = useState(false);
+  const [bookSettings, setBookSettings] = useState({
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+    viewMode: 'grid',
+    showPending: true,
+    showActive: true,
+    showInactive: false,
+    itemsPerPage: 12
+  });
 
   useEffect(() => {
+    // Load saved book settings from localStorage
+    const savedSettings = localStorage.getItem('bookSettings');
+    if (savedSettings) {
+      try {
+        setBookSettings(JSON.parse(savedSettings));
+      } catch (error) {
+        console.error('Error loading book settings:', error);
+      }
+    }
+
     // Run authentication diagnostics first
     runAuthDiagnostics().then(isAuthenticated => {
       if (isAuthenticated) {
@@ -260,7 +282,9 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
             {[
               { id: 'overview', label: 'نظرة عامة', icon: BarChart3 },
               { id: 'orders', label: 'الطلبات', icon: Package },
-              { id: 'books', label: 'الكتب', icon: BookOpen }
+              { id: 'books', label: 'الكتب', icon: BookOpen },
+              { id: 'ratings', label: 'التقييمات', icon: Star },
+              { id: 'analytics', label: 'التحليلات', icon: Activity }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -321,43 +345,321 @@ function LibraryDashboard({ bookstoreId: propBookstoreId }) {
         )}
 
         {activeTab === 'books' && (
-          <div className="bg-white rounded-lg shadow-soft p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">إدارة الكتب</h2>
-              <Link
-                to={`/library/${bookstoreId}/books/add`}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                إضافة كتاب جديد
-              </Link>
+          <div className="space-y-6">
+            {/* Books Management Header */}
+            <div className="bg-white rounded-lg shadow-soft p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">إدارة الكتب</h2>
+                <div className="flex gap-3">
+                  <Link
+                    to={`/library/${bookstoreId}/books/add`}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة كتاب جديد
+                  </Link>
+                  <button 
+                    onClick={() => setShowBookSettings(true)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    إعدادات
+                  </button>
+                </div>
+              </div>
+              
+              {/* Books Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-blue-600 font-medium">إجمالي الكتب</p>
+                      <p className="text-2xl font-bold text-blue-900">{stats.activeBooks + stats.pendingBooks}</p>
+                    </div>
+                    <BookOpen className="h-8 w-8 text-blue-600" />
+                  </div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-green-600 font-medium">الكتب النشطة</p>
+                      <p className="text-2xl font-bold text-green-900">{stats.activeBooks}</p>
+                    </div>
+                    <Package className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-yellow-600 font-medium">في الانتظار</p>
+                      <p className="text-2xl font-bold text-yellow-900">{stats.pendingBooks}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-yellow-600" />
+                  </div>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-purple-600 font-medium">إجمالي المشاهدات</p>
+                      <p className="text-2xl font-bold text-purple-900">{stats.totalViews.toLocaleString()}</p>
+                    </div>
+                    <Eye className="h-8 w-8 text-purple-600" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p>سيتم عرض قائمة الكتب هنا</p>
-              <p className="text-sm">قريباً...</p>
+            
+            {/* Books List */}
+            <div className="bg-white rounded-lg shadow-soft p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">قائمة الكتب</h3>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <SortAsc className="h-4 w-4" />
+                    {bookSettings.sortBy === 'created_at' ? 'تاريخ الإضافة' :
+                     bookSettings.sortBy === 'title_ar' ? 'اسم الكتاب' :
+                     bookSettings.sortBy === 'author_ar' ? 'اسم المؤلف' :
+                     bookSettings.sortBy === 'price' ? 'السعر' :
+                     bookSettings.sortBy === 'views_count' ? 'المشاهدات' :
+                     bookSettings.sortBy === 'sales_count' ? 'المبيعات' : 'تاريخ الإضافة'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {bookSettings.viewMode === 'grid' ? <Grid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                    {bookSettings.viewMode === 'grid' ? 'شبكة' : 'قائمة'}
+                  </span>
+                  <span>{bookSettings.itemsPerPage} عنصر/صفحة</span>
+                </div>
+              </div>
+              <div className="text-center py-8 text-gray-500">
+                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p>سيتم عرض قائمة الكتب التفصيلية هنا</p>
+                <p className="text-sm">قريباً... (سيتم تطبيق الإعدادات المحفوظة)</p>
+              </div>
             </div>
           </div>
         )}
-
-        {activeTab === 'orders' && (
-          <OrderManagement bookstoreId={bookstoreId} />
-        )}
-
-        {activeTab === 'books' && (
-          <div className="bg-white rounded-lg shadow-soft p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">إدارة الكتب</h2>
-              <Link
-                to={`/library/${bookstoreId}/books/add`}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                إضافة كتاب جديد
-              </Link>
+        
+        {/* Book Settings Modal */}
+        {showBookSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" dir="rtl">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900">إعدادات إدارة الكتب</h3>
+                <button
+                  onClick={() => setShowBookSettings(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Display Settings */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">إعدادات العرض</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ترتيب حسب
+                      </label>
+                      <select
+                        value={bookSettings.sortBy}
+                        onChange={(e) => setBookSettings(prev => ({ ...prev, sortBy: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="created_at">تاريخ الإضافة</option>
+                        <option value="title_ar">اسم الكتاب</option>
+                        <option value="author_ar">اسم المؤلف</option>
+                        <option value="price">السعر</option>
+                        <option value="views_count">عدد المشاهدات</option>
+                        <option value="sales_count">عدد المبيعات</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ترتيب
+                      </label>
+                      <select
+                        value={bookSettings.sortOrder}
+                        onChange={(e) => setBookSettings(prev => ({ ...prev, sortOrder: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="desc">تنازلي</option>
+                        <option value="asc">تصاعدي</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* View Mode */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">طريقة العرض</h4>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setBookSettings(prev => ({ ...prev, viewMode: 'grid' }))}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                        bookSettings.viewMode === 'grid'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Grid className="h-4 w-4" />
+                      شبكة
+                    </button>
+                    <button
+                      onClick={() => setBookSettings(prev => ({ ...prev, viewMode: 'list' }))}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                        bookSettings.viewMode === 'list'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <List className="h-4 w-4" />
+                      قائمة
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Filter Settings */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">إعدادات التصفية</h4>
+                  <div className="space-y-3">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={bookSettings.showActive}
+                        onChange={(e) => setBookSettings(prev => ({ ...prev, showActive: e.target.checked }))}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="mr-2 text-sm text-gray-700">عرض الكتب النشطة</span>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={bookSettings.showPending}
+                        onChange={(e) => setBookSettings(prev => ({ ...prev, showPending: e.target.checked }))}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="mr-2 text-sm text-gray-700">عرض الكتب في الانتظار</span>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={bookSettings.showInactive}
+                        onChange={(e) => setBookSettings(prev => ({ ...prev, showInactive: e.target.checked }))}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="mr-2 text-sm text-gray-700">عرض الكتب غير النشطة</span>
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Items Per Page */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">عدد العناصر في الصفحة</h4>
+                  <select
+                    value={bookSettings.itemsPerPage}
+                    onChange={(e) => setBookSettings(prev => ({ ...prev, itemsPerPage: parseInt(e.target.value) }))}
+                    className="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={6}>6 كتب</option>
+                    <option value={12}>12 كتاب</option>
+                    <option value={24}>24 كتاب</option>
+                    <option value={48}>48 كتاب</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowBookSettings(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={() => {
+                    // Save settings to localStorage
+                    localStorage.setItem('bookSettings', JSON.stringify(bookSettings));
+                    setShowBookSettings(false);
+                    // You can add a toast notification here
+                    alert('تم حفظ الإعدادات بنجاح');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  حفظ الإعدادات
+                </button>
+              </div>
             </div>
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p>سيتم عرض قائمة الكتب هنا</p>
-              <p className="text-sm">قريباً...</p>
+          </div>
+        )}
+        
+        {activeTab === 'ratings' && (
+          <div className="space-y-6">
+            <LibraryRating bookstoreId={bookstoreId} showReviews={true} />
+          </div>
+        )}
+        
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            {/* Analytics Overview */}
+            <div className="bg-white rounded-lg shadow-soft p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">تحليلات متقدمة</h2>
+              
+              {/* Performance Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-blue-600 font-medium">معدل التحويل</p>
+                      <p className="text-3xl font-bold text-blue-900">{stats.conversionRate}%</p>
+                      <p className="text-sm text-blue-600 mt-1">من المشاهدات إلى المبيعات</p>
+                    </div>
+                    <TrendingUp className="h-10 w-10 text-blue-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-green-600 font-medium">متوسط قيمة الطلب</p>
+                      <p className="text-3xl font-bold text-green-900">{stats.avgOrderValue.toLocaleString()}</p>
+                      <p className="text-sm text-green-600 mt-1">دينار عراقي</p>
+                    </div>
+                    <DollarSign className="h-10 w-10 text-green-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-purple-600 font-medium">تقييم المكتبة</p>
+                      <p className="text-3xl font-bold text-purple-900">{stats.libraryRating || '0.0'}</p>
+                      <p className="text-sm text-purple-600 mt-1">من {stats.libraryReviews || 0} تقييم</p>
+                    </div>
+                    <Star className="h-10 w-10 text-purple-600" />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Charts Placeholder */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">مخطط المبيعات</h3>
+                  <p className="text-gray-500">سيتم عرض مخطط المبيعات الشهرية هنا</p>
+                </div>
+                
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">نشاط المستخدمين</h3>
+                  <p className="text-gray-500">سيتم عرض مخطط نشاط المستخدمين هنا</p>
+                </div>
+              </div>
             </div>
           </div>
         )}

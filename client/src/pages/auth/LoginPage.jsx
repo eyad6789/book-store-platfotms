@@ -202,14 +202,14 @@ const LoginPage = () => {
         </div>
 
         {/* Demo Accounts */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-800 mb-2">حسابات تجريبية:</h3>
           <div className="text-xs text-blue-700 space-y-1">
             <p><strong>عميل:</strong> customer@example.com / customer123</p>
             <p><strong>صاحب مكتبة:</strong> owner@almutanabbi.com / owner123</p>
             <p><strong>مدير:</strong> admin@almutanabbi.com / admin123</p>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   )

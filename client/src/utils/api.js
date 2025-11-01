@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 // Create axios instance
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -183,7 +183,9 @@ export const formatDate = (date) => {
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '/placeholder-book.jpg'
   if (imagePath.startsWith('http')) return imagePath
-  return `${window.location.origin}${imagePath}`
+  // In production, use the base URL from environment
+  const baseURL = import.meta.env.VITE_BASE_URL || window.location.origin
+  return `${baseURL}${imagePath}`
 }
 
 export default api

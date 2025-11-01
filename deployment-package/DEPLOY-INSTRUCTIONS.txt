@@ -1,0 +1,35 @@
+=================================================================
+DEPLOYMENT INSTRUCTIONS FOR al-mutanabbi.online
+=================================================================
+
+1. UPLOAD FILES:
+   - Upload contents of 'public_html/' to your Hostinger public_html directory
+   - Upload 'server/' folder to /home/your_username/server/
+   - Create 'logs/' directory at /home/your_username/logs/
+
+2. CONFIGURE ENVIRONMENT:
+   - Rename server/.env.example to server/.env
+   - Edit server/.env and fill in your database credentials and secrets
+   - Generate secrets using: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+3. INSTALL SERVER DEPENDENCIES:
+   SSH into your server and run:
+   cd /home/your_username/server
+   npm install --production
+
+4. SETUP DATABASE:
+   - Create PostgreSQL database in Hostinger control panel
+   - Run migrations: node migrations/run-migrations.js
+
+5. CONFIGURE NODE.JS:
+   - Go to Hostinger control panel -> Node.js
+   - Create application pointing to server/server.js
+   - Start the application
+
+6. VERIFY:
+   - Visit https://al-mutanabbi.online
+   - Test login, registration, and all features
+
+For detailed instructions, see HOSTINGER-DEPLOYMENT-GUIDE.md
+
+=================================================================

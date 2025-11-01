@@ -4,11 +4,11 @@ require('dotenv').config();
 // Database configuration
 const sequelize = new Sequelize({
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
+  port: process.env.DB_PORT || 3306,
   database: process.env.DB_NAME || 'almutanabbi',
-  username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres123',
-  dialect: 'postgres',
+  username: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  dialect: 'mysql',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   pool: {
     max: 5,
@@ -21,6 +21,10 @@ const sequelize = new Sequelize({
     underscored: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
+  },
+  dialectOptions: {
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci'
   }
 });
 

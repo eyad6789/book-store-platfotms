@@ -1,0 +1,288 @@
+================================================================================
+                    HOSTINGER DEPLOYMENT CHECKLIST
+                      al-mutanabbi.online
+================================================================================
+
+PRE-DEPLOYMENT PREPARATION
+================================================================================
+[ ] Fix server package.json
+    cd server && del package.json && ren package-fixed.json package.json
+
+[ ] Generate JWT secret
+    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+    Copy result: _________________________________________________
+
+[ ] Generate Session secret
+    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+    Copy result: _________________________________________________
+
+[ ] Run deployment script
+    Windows: .\deploy.bat
+    Linux/Mac: ./deploy.sh
+
+[ ] Verify deployment-package folder created
+
+
+HOSTINGER SETUP
+================================================================================
+[ ] Login to Hostinger control panel (hPanel)
+    URL: https://hpanel.hostinger.com
+
+[ ] Create PostgreSQL Database
+    Database name: almutanabbi_prod
+    Username: _________________________________________________
+    Password: _________________________________________________
+    Host: _____________________________________________________
+    Port: 5432
+
+[ ] Note database credentials above
+
+
+ENVIRONMENT CONFIGURATION
+================================================================================
+[ ] Edit deployment-package/server/.env.example
+
+    Update these values:
+    [ ] DB_HOST=_____________________________________________
+    [ ] DB_NAME=almutanabbi_prod
+    [ ] DB_USER=_____________________________________________
+    [ ] DB_PASSWORD=_________________________________________
+    [ ] JWT_SECRET=__________________________________________
+    [ ] SESSION_SECRET=______________________________________
+    [ ] EMAIL_USER=__________________________________________
+    [ ] EMAIL_PASSWORD=______________________________________
+    [ ] UPLOAD_PATH=/home/YOUR_USERNAME/public_html/uploads
+    [ ] LOG_FILE=/home/YOUR_USERNAME/logs/app.log
+
+[ ] Rename .env.example to .env
+
+
+FILE UPLOAD (SFTP)
+================================================================================
+SFTP Connection Details:
+    Host: ____________________________________________________
+    Username: ________________________________________________
+    Password: ________________________________________________
+    Port: 21 or 22
+
+[ ] Connect to Hostinger via SFTP (FileZilla)
+
+[ ] Upload client files
+    FROM: deployment-package/public_html/*
+    TO: /home/YOUR_USERNAME/public_html/
+
+[ ] Upload .htaccess
+    FROM: deployment-package/public_html/.htaccess
+    TO: /home/YOUR_USERNAME/public_html/.htaccess
+
+[ ] Upload server files
+    FROM: deployment-package/server/*
+    TO: /home/YOUR_USERNAME/server/
+
+[ ] Create logs directory
+    /home/YOUR_USERNAME/logs/
+
+[ ] Create backups directory
+    /home/YOUR_USERNAME/backups/
+
+[ ] Set permissions for uploads
+    chmod 777 /home/YOUR_USERNAME/public_html/uploads
+
+
+NODE.JS APPLICATION SETUP
+================================================================================
+[ ] Go to hPanel → Advanced → Node.js
+
+[ ] Click "Create Application"
+
+[ ] Configure application:
+    [ ] Application root: /home/YOUR_USERNAME/server
+    [ ] Application URL: al-mutanabbi.online
+    [ ] Application startup file: server.js
+    [ ] Node.js version: 16.x or higher
+    [ ] Application mode: Production
+    [ ] Port: (auto-assigned)
+
+[ ] Save configuration
+
+
+INSTALL DEPENDENCIES
+================================================================================
+[ ] Open SSH terminal or use Hostinger Node.js terminal
+
+[ ] Navigate to server directory
+    cd /home/YOUR_USERNAME/server
+
+[ ] Install dependencies
+    npm install --production
+
+[ ] Wait for installation to complete
+
+
+DATABASE MIGRATION
+================================================================================
+[ ] Run migrations
+    cd /home/YOUR_USERNAME/server
+    node migrations/run-migrations.js
+
+[ ] Verify migrations completed successfully
+
+
+START APPLICATION
+================================================================================
+[ ] In Hostinger Node.js panel, click "Start Application"
+
+[ ] Or via SSH:
+    cd /home/YOUR_USERNAME/server
+    npm start
+
+[ ] Verify application started (check logs)
+
+
+SSL CERTIFICATE
+================================================================================
+[ ] Go to hPanel → Security → SSL
+
+[ ] Select domain: al-mutanabbi.online
+
+[ ] Install Let's Encrypt SSL certificate
+
+[ ] Enable "Force HTTPS"
+
+[ ] Wait for SSL to activate (may take a few minutes)
+
+
+TESTING
+================================================================================
+[ ] Visit https://al-mutanabbi.online
+    Status: [ ] Working [ ] Error
+
+[ ] Test homepage loads
+    Status: [ ] Working [ ] Error
+
+[ ] Test API health endpoint
+    https://al-mutanabbi.online/api/health
+    Status: [ ] Working [ ] Error
+
+[ ] Test user registration
+    Status: [ ] Working [ ] Error
+
+[ ] Test user login
+    Status: [ ] Working [ ] Error
+
+[ ] Test browse books
+    Status: [ ] Working [ ] Error
+
+[ ] Test image uploads
+    Status: [ ] Working [ ] Error
+
+[ ] Test library owner dashboard
+    Status: [ ] Working [ ] Error
+
+[ ] Test admin dashboard
+    Status: [ ] Working [ ] Error
+
+[ ] Test book search
+    Status: [ ] Working [ ] Error
+
+[ ] Test order creation
+    Status: [ ] Working [ ] Error
+
+
+POST-DEPLOYMENT
+================================================================================
+[ ] Create admin account
+    Email: ___________________________________________________
+    Password: ________________________________________________
+
+[ ] Manually set user role to 'admin' in database
+
+[ ] Test password reset email functionality
+
+[ ] Setup automated database backups
+    Cron job: 0 2 * * * /path/to/backup-script.sh
+
+[ ] Setup PM2 for process management (optional)
+    npm install -g pm2
+    pm2 start server.js --name almutanabbi
+    pm2 save
+    pm2 startup
+
+[ ] Configure monitoring/alerts
+
+[ ] Add sample data (books, bookstores)
+
+[ ] Test all features thoroughly
+
+[ ] Document any custom configurations
+
+
+TROUBLESHOOTING NOTES
+================================================================================
+Issue: ___________________________________________________________
+Solution: ________________________________________________________
+
+Issue: ___________________________________________________________
+Solution: ________________________________________________________
+
+Issue: ___________________________________________________________
+Solution: ________________________________________________________
+
+
+IMPORTANT CREDENTIALS (KEEP SECURE!)
+================================================================================
+Domain: al-mutanabbi.online
+
+Hostinger Login:
+    URL: https://hpanel.hostinger.com
+    Email: ___________________________________________________
+    Password: ________________________________________________
+
+Database:
+    Host: ____________________________________________________
+    Database: almutanabbi_prod
+    Username: ________________________________________________
+    Password: ________________________________________________
+
+Email (for password reset):
+    Email: ___________________________________________________
+    App Password: ____________________________________________
+
+Admin Account:
+    Email: ___________________________________________________
+    Password: ________________________________________________
+
+JWT Secret: __________________________________________________
+Session Secret: ______________________________________________
+
+
+DEPLOYMENT COMPLETED
+================================================================================
+Date: ____________________________________________________________
+Time: ____________________________________________________________
+Deployed by: _____________________________________________________
+
+Notes:
+_____________________________________________________________________
+_____________________________________________________________________
+_____________________________________________________________________
+_____________________________________________________________________
+
+
+================================================================================
+                    🎉 DEPLOYMENT SUCCESSFUL! 🎉
+================================================================================
+
+Next Steps:
+1. Announce launch to users
+2. Monitor logs for first 24 hours
+3. Setup regular backups
+4. Plan marketing strategy
+5. Gather user feedback
+
+For detailed help, see:
+- HOSTINGER-DEPLOYMENT-GUIDE.md (full guide)
+- QUICK-START-DEPLOYMENT.md (fast reference)
+- DEPLOYMENT-SUMMARY.md (overview)
+
+================================================================================

@@ -8,6 +8,7 @@ require('dotenv').config();
 const { sequelize } = require('./config/database');
 
 // Import routes
+const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const bookRoutes = require('./routes/books');
 const bookstoreRoutes = require('./routes/bookstores');
@@ -84,6 +85,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API routes
 console.log('📝 Registering API routes...');
+app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 console.log('✅ Auth routes registered');
 app.use('/api/books', bookRoutes);

@@ -1,0 +1,213 @@
+═══════════════════════════════════════════════════════════════
+  المتنبي BOOKSTORE - HOSTINGER DEPLOYMENT CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+📋 BEFORE YOU START
+═══════════════════════════════════════════════════════════════
+☐ Read HOSTINGER-DEPLOYMENT-GUIDE.md
+☐ Have Hostinger account ready
+☐ Have domain name ready
+☐ Have GitHub account ready
+☐ Backup your current work
+
+
+📦 STEP 1: PREPARE ENVIRONMENT FILES (5 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Copy server/.env.example.production to server/.env
+☐ Edit server/.env with your database credentials
+☐ Generate JWT secret: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+☐ Update JWT_SECRET in server/.env
+☐ Update DB_HOST, DB_NAME, DB_USER, DB_PASSWORD in server/.env
+☐ Update CLIENT_URL with your domain in server/.env
+☐ Copy client/.env.example.production to client/.env
+☐ Update VITE_API_URL with your domain in client/.env
+
+
+🗄️ STEP 2: SET UP HOSTINGER DATABASE (10 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Log in to Hostinger control panel
+☐ Go to Databases → PostgreSQL
+☐ Create new database: almutanabbi_db
+☐ Create database user: almutanabbi_user
+☐ Set strong password
+☐ Note down all credentials
+☐ Test database connection via phpPgAdmin
+
+
+🔐 STEP 3: ENABLE SSH ACCESS (5 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Go to Advanced → SSH Access in Hostinger
+☐ Enable SSH
+☐ Note SSH credentials (host, port, username, password)
+☐ Test SSH connection: ssh username@your-server-ip
+
+
+📦 STEP 4: INSTALL NODE.JS ON SERVER (10 minutes)
+═══════════════════════════════════════════════════════════════
+☐ SSH into your server
+☐ Check Node.js version: node --version
+☐ If not installed or old version, install Node.js 18:
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+☐ Install PM2: sudo npm install -g pm2
+☐ Verify installations: node --version && npm --version && pm2 --version
+
+
+🐙 STEP 5: SET UP GITHUB REPOSITORY (10 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Create new repository on GitHub: almutanabbi-bookstore
+☐ Keep it Private (recommended)
+☐ Initialize git locally: git init
+☐ Add remote: git remote add origin https://github.com/YOUR_USERNAME/almutanabbi-bookstore.git
+☐ Add all files: git add .
+☐ Commit: git commit -m "Initial deployment setup"
+☐ Push: git push -u origin main
+
+
+🔑 STEP 6: CONFIGURE GITHUB SECRETS (5 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Go to GitHub repository → Settings → Secrets and variables → Actions
+☐ Add secret: FTP_SERVER (e.g., ftp.yourdomain.com)
+☐ Add secret: FTP_USERNAME (your FTP username)
+☐ Add secret: FTP_PASSWORD (your FTP password)
+☐ Add secret: VITE_API_URL (e.g., https://yourdomain.com/api)
+
+
+🚀 STEP 7: CHOOSE DEPLOYMENT METHOD
+═══════════════════════════════════════════════════════════════
+
+OPTION A: AUTOMATIC DEPLOYMENT (GitHub Actions)
+☐ Ensure GitHub secrets are configured
+☐ Push to main branch: git push origin main
+☐ Go to Actions tab on GitHub
+☐ Watch deployment progress
+☐ Wait for completion
+
+OPTION B: MANUAL DEPLOYMENT
+☐ Run deployment script locally:
+   Windows: deploy.bat
+   Linux/Mac: chmod +x deploy.sh && ./deploy.sh
+☐ Upload files to Hostinger via FTP (exclude node_modules, .git)
+☐ SSH into server
+☐ Navigate to project: cd /home/username/public_html
+☐ Install dependencies: cd server && npm install --production && cd ..
+☐ Build client: cd client && npm install && npm run build && cd ..
+☐ Start with PM2: pm2 start ecosystem.config.js
+☐ Save PM2: pm2 save
+☐ Setup PM2 startup: pm2 startup
+
+OPTION C: GIT DEPLOYMENT ON SERVER
+☐ SSH into server
+☐ Clone repository: git clone https://github.com/YOUR_USERNAME/almutanabbi-bookstore.git
+☐ Navigate: cd almutanabbi-bookstore
+☐ Create .env files (copy from examples and edit)
+☐ Run: chmod +x deploy.sh && ./deploy.sh
+☐ Start: pm2 start ecosystem.config.js
+☐ Save: pm2 save
+☐ Startup: pm2 startup
+
+
+🔧 STEP 8: POST-DEPLOYMENT CONFIGURATION (15 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Verify app is running: pm2 status
+☐ Check logs: pm2 logs almutanabbi-server
+☐ Test health endpoint: curl http://localhost:3000/api/health
+☐ Run database migrations: cd server && npm run migrate && cd ..
+☐ Create admin user: cd server && node scripts/create-admin.js && cd ..
+☐ Test uploads directory: ls -la server/uploads
+☐ Set permissions: chmod -R 755 server/uploads
+
+
+🌐 STEP 9: DOMAIN AND SSL CONFIGURATION (10 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Point domain to server IP in Hostinger DNS
+☐ Wait for DNS propagation (5-30 minutes)
+☐ Enable SSL certificate in Hostinger (Let's Encrypt)
+☐ Force HTTPS redirect (already in .htaccess)
+☐ Test domain: https://yourdomain.com
+☐ Test API: https://yourdomain.com/api/health
+
+
+✅ STEP 10: TESTING (15 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Visit https://yourdomain.com
+☐ Test user registration
+☐ Test user login
+☐ Test book browsing
+☐ Test search functionality
+☐ Test library owner features
+☐ Test admin dashboard
+☐ Test file uploads
+☐ Test order creation
+☐ Check mobile responsiveness
+
+
+📊 STEP 11: MONITORING SETUP (5 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Set up PM2 monitoring: pm2 monit
+☐ Configure log rotation: pm2 install pm2-logrotate
+☐ Set up database backup script
+☐ Test backup: pg_dump -U almutanabbi_user almutanabbi_db > backup.sql
+☐ Schedule regular backups (cron job)
+
+
+🔐 STEP 12: SECURITY HARDENING (10 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Verify .env files are not publicly accessible
+☐ Check file permissions: ls -la
+☐ Test rate limiting: make multiple rapid requests
+☐ Verify HTTPS is working
+☐ Check security headers: curl -I https://yourdomain.com
+☐ Run security audit: npm audit
+☐ Fix vulnerabilities: npm audit fix
+
+
+📝 STEP 13: DOCUMENTATION (5 minutes)
+═══════════════════════════════════════════════════════════════
+☐ Document your server credentials (securely)
+☐ Document database credentials (securely)
+☐ Note PM2 commands for reference
+☐ Save backup procedures
+☐ Document any custom configurations
+
+
+🎉 FINAL VERIFICATION
+═══════════════════════════════════════════════════════════════
+☐ Application is accessible at https://yourdomain.com
+☐ API is responding at https://yourdomain.com/api/health
+☐ Database is connected and migrations are complete
+☐ Admin account is created and working
+☐ SSL certificate is active
+☐ PM2 is managing the process
+☐ Logs are being written
+☐ Uploads are working
+☐ All features are functional
+
+
+📞 SUPPORT RESOURCES
+═══════════════════════════════════════════════════════════════
+Documentation:
+  - HOSTINGER-DEPLOYMENT-GUIDE.md (detailed guide)
+  - DEPLOYMENT-QUICK-START.md (quick reference)
+  - DEPLOYMENT-FILES-README.md (file descriptions)
+
+Common Commands:
+  - Check status: pm2 status
+  - View logs: pm2 logs almutanabbi-server
+  - Restart app: pm2 restart almutanabbi-server
+  - Update app: git pull && npm install && pm2 restart almutanabbi-server
+  - Database backup: pg_dump -U almutanabbi_user almutanabbi_db > backup.sql
+
+Troubleshooting:
+  - App not starting: Check pm2 logs
+  - Database error: Verify .env credentials
+  - 502 Gateway: Check pm2 status and restart Apache
+  - Upload fails: Check permissions on uploads directory
+
+
+═══════════════════════════════════════════════════════════════
+  ESTIMATED TOTAL TIME: 90-120 minutes
+═══════════════════════════════════════════════════════════════
+
+Good luck with your deployment! 🚀
+المتنبي - Iraqi Bookstore Marketplace

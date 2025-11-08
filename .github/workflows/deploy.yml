@@ -1,0 +1,68 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+        
+      - name: Install client dependencies
+        working-directory: ./client
+        run: npm ci
+        
+      - name: Build client
+        working-directory: ./client
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://al-mutanabbi.online/api' }}
+          
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ./public_html/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env
+            **/uploads/**
+            **/*.md
+            **/*.log
+            **/debug-*.js
+            **/check-*.js
+            **/fix-*.js
+            **/test-*.js
+            
+      - name: Deploy notification
+        if: success()
+        run: echo "✅ Deployment successful!"
+        
+      - name: Deploy failed notification
+        if: failure()
+        run: echo "❌ Deployment failed!"

@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+package-lock.json.backup
+package.json.backup
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Build outputs
+dist/
+build/
+client/dist/
+client/build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Uploads and user-generated content
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Database
+*.sqlite
+*.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Debug files
+debug-*.js
+check-*.js
+fix-*.js
+test-*.js
+simple-*.js
+quick-*.js
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Documentation (keep only main docs)
+*-SUMMARY.md
+*-FIX*.md
+*-REPORT.md
+
+# Deployment
+.vercel
+.netlify
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache

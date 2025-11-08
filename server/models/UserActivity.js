@@ -34,12 +34,12 @@ const UserActivity = sequelize.define('UserActivity', {
     allowNull: true
   },
   metadata: {
-    type: DataTypes.JSONB,
+    type: DataTypes.JSON,
     allowNull: true,
     defaultValue: {}
   },
   ip_address: {
-    type: DataTypes.INET,
+    type: DataTypes.STRING(45),
     allowNull: true
   },
   user_agent: {

@@ -24,7 +24,7 @@ const sequelize = new Sequelize({
   },
   dialectOptions: {
     charset: 'utf8mb4',
-    collate: 'utf8mb4_unicode_ci'
+    connectTimeout: 60000
   }
 });
 

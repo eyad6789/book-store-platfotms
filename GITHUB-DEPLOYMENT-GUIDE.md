@@ -160,7 +160,7 @@ git push -u origin main
 
 ```bash
 # Windows (PowerShell)
-ssh u628720712@your-server-ip
+ssh u628720712@31.170.161.140
 
 # Or use PuTTY on Windows
 ```

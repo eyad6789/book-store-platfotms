@@ -32,7 +32,7 @@ const SearchQuery = sequelize.define('SearchQuery', {
     }
   },
   ip_address: {
-    type: DataTypes.INET,
+    type: DataTypes.STRING(45),
     allowNull: true
   },
   user_agent: {

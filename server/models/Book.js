@@ -168,7 +168,7 @@ const Book = sequelize.define('Book', {
     defaultValue: 0
   },
   tags: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
+    type: DataTypes.JSON,
     defaultValue: []
   },
   condition: {
@@ -176,7 +176,7 @@ const Book = sequelize.define('Book', {
     defaultValue: 'new'
   },
   search_vector: {
-    type: DataTypes.TSVECTOR,
+    type: DataTypes.TEXT,
     allowNull: true
   }
 }, {
@@ -214,11 +214,6 @@ const Book = sequelize.define('Book', {
     },
     {
       fields: ['view_count']
-    },
-    {
-      name: 'books_search_idx',
-      using: 'GIN',
-      fields: ['search_vector']
     }
   ]
 });
